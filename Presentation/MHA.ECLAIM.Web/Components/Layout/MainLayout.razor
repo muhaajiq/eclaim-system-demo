@@ -1,0 +1,180 @@
+﻿@inherits LayoutComponentBase
+@inject TokenHelper TokenHelper
+@inject NavigationManager Navigation
+@inject NavigationHelper NavigationHelper
+@inject IJSRuntime JS
+@inject AuthState AuthState
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger m-3" role="alert">
+        <strong>Error:</strong> @ErrorMessage
+    </div>
+}
+else
+{
+    //TODO: Apply Mobile responsive design for sidebar and top bar
+    <!-- Top bar -->
+    <div class="top-bar d-flex justify-content-between align-items-center px-3 fixed-top" style="height: 80px; background-color: white; border-bottom: 4px solid #04939b;">
+        <button class="btn btn-link d-lg-none me-2 navbar-toggler" @onclick="ToggleSideBar">
+            <i class="bi bi-list" style="font-size: 1.5rem; color: #04939b;"></i>
+        </button>
+        <div class="d-flex align-items-center ms-4">
+            <img src="images/star-dream-cruises-logo.png" alt="SDC Logo" style="height: 45px;">
+            <span class="fw-bold ms-2" style="font-size: 24px; color: #04939b;">
+                e-Claims Portal
+            </span>
+        </div>
+        <div class="text-dark fw-bold d-flex align-items-center me-2" style="font-size: 16px;">
+            @UserName
+            <div class="dropdown">
+                <i class="bi bi-gear-fill ms-3 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; color: #04939b; font-size: 1.5rem;"></i>
+                <ul class="dropdown-menu dropdown-menu-end custom-dropdown">
+                    @foreach (var item in SettingsLinks)
+                    {
+                        <li>
+                            <a class="dropdown-item" href="@item.Url" target="_blank">@item.Text</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex" style="margin-top: 80px;">
+        <RadzenDialog />
+        <div id="sideBar" class="sidebar bg-black text-white position-fixed" style="top: 80px; height: calc(100vh - 80px); overflow-y: hidden;">
+            @RenderNav()
+        </div>
+        <main class="@MainClass main-section" style="height: calc(100vh - 80px); overflow-y: auto;">
+            @Body
+        </main>
+    </div>
+
+    @* <!-- Layout Wrapper -->
+    <div class="d-flex" style="margin-top: 64px; min-height: calc(100vh - 64px);">
+        <!-- Sidebar (desktop) -->
+        <aside class="d-none d-md-flex flex-column bg-light border-end position-fixed"
+               style="top: 64px; height: calc(100vh - 64px); width: 250px;">
+            @RenderNav()
+        </aside>
+
+        <!-- Offcanvas sidebar (mobile) -->
+        <div class="offcanvas offcanvas-start bg-light" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
+            <div class="offcanvas-header border-bottom">
+                <h5 class="offcanvas-title fw-semibold" id="sidebarLabel">Menu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body p-0">
+                @RenderNav()
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <main class="flex-grow-1 p-4" style="margin-left: 0; margin-top: 0;">
+            <div class="bg-white rounded-4 shadow-sm p-4"
+                 style="margin-left: 0; min-height: calc(100vh - 64px);">
+                @Body
+            </div>
+        </main>
+    </div> *@
+
+    <!-- Blazor error UI -->
+    <div id="blazor-error-ui"
+         class="alert alert-danger position-fixed bottom-0 start-0 w-100 m-0 rounded-0 shadow-sm"
+         style="display:none;">
+        An unhandled error has occurred.
+        <a href="" class="reload text-decoration-underline">Reload</a>
+        <a class="dismiss ms-3">🗙</a>
+    </div>
+}
+
+@code {
+    private string? UserName;
+    private string? ErrorMessage;
+    private record DropdownLink(string Text, string Url);
+    private List<DropdownLink> SettingsLinks = new();
+    private bool ShowSideBar = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await AuthState.EnsureTokenAsync();
+            string spHostUrl = string.Empty;
+            var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+            if (queryParams.TryGetValue("SPHostUrl", out var spHostUrlValues))
+            {
+                spHostUrl = spHostUrlValues.ToString();
+                NavigationHelper.SetSPHostUrl(spHostUrl);
+            }
+
+            if (string.IsNullOrEmpty(spHostUrl))
+            {
+                throw new Exception("SPHostUrl is null or empty.");
+            }
+
+            string accessToken = await TokenHelper.GetUserAccessToken();
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                throw new Exception("Access token is null or empty.");
+            }
+            else
+            {
+                using (ClientContext context = TokenHelper.GetClientContextWithAccessToken(spHostUrl, accessToken))
+                {
+                    User currentUser = context.Web.CurrentUser;
+                    context.Load(currentUser, x => x.Id, x => x.LoginName, x => x.Title, x => x.Email, x => x.Groups);
+                    context.ExecuteQueryWithIncrementalRetry();
+
+                    UserName = currentUser.Title;
+
+                    string siteContentsUrl = string.Format(ConstantHelper.URLTemplate.SiteContents, spHostUrl);
+                    string siteSettingsUrl = string.Format(ConstantHelper.URLTemplate.SiteSettings, spHostUrl);
+
+                    SettingsLinks = new()
+                    {
+                        new DropdownLink("Site Contents", $"{siteContentsUrl}"),
+                        new DropdownLink("Site Settings", $"{siteSettingsUrl}")
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "An error occurred while loading your profile. Please try again later.";
+            Console.Error.WriteLine(ex);
+        }
+    }
+
+    // Custom navbar
+    private RenderFragment RenderNav()
+    {
+        return builder => { builder.OpenComponent(0, typeof(NavMenu)); builder.CloseComponent(); };
+    }
+
+    private string MainClass => Navigation.Uri.Contains("/CreateRequestForm")
+    || Navigation.Uri.Contains("/ViewRequestForm")
+    || Navigation.Uri.Contains("/ApprovalForm")
+    ? "flex-fill bg-light"
+    : "flex-fill bg-light p-4";
+
+    private async Task ToggleSideBar()
+    {
+        ShowSideBar = !ShowSideBar;
+
+        if (ShowSideBar)
+        {
+            await JS.InvokeVoidAsync("jsInterop.removeClass", "sideBar", "sidebar-collapse");
+            await JS.InvokeVoidAsync("jsInterop.appendClass", "sideBar", "sidebar-expand");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("jsInterop.removeClass", "sideBar", "sidebar-expand");
+            await JS.InvokeVoidAsync("jsInterop.appendClass", "sideBar", "sidebar-collapse");
+        }
+    }
+
+}

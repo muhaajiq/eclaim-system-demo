@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.17" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Data\MHA.ECLAIM.Data\MHA.ECLAIM.Data.csproj" />
+    <ProjectReference Include="..\..\Presentation\MHA.ECLAIM.Process\MHA.ECLAIM.Process.csproj" />
+    <ProjectReference Include="..\..\Shared\MHA.ECLAIM.Framework\MHA.ECLAIM.Framework.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MHA.Framework.Core.General">
+      <HintPath>..\..\Library\MHA.Framework.Core.Helper\MHA.Framework.Core.General.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.SP">
+      <HintPath>..\..\Library\MHA.Framework.Core.SP\MHA.Framework.Core.SP.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.Workflow.BL">
+      <HintPath>..\..\Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BL.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.Workflow.BO">
+      <HintPath>..\..\Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BO.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.Workflow.DL">
+      <HintPath>..\..\Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.DL.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

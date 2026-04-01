@@ -1,0 +1,252 @@
+﻿@inject IApprovalProcess IApprovalProcess
+@inject IJSRuntime JS
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header card-section-bg">
+        Claim Information
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-2 d-flex align-items-center">
+                <label for="InpPurposeOfClaim" class="form-label">Purpose Of Claim</label>
+            </div>
+            <div class="col-md-4">
+                <InputText id="InpPurposeOfClaim" @bind-Value="model.MainClaimHeaderVM.PurposeOfClaims" class="form-control" disabled />
+            </div>
+            <div class="col-md-2 d-flex align-items-center">
+                <label for="InpClaimCurrency" class="form-label">Claim Currency</label>
+            </div>
+            <div class="col-md-4">
+                <InputText id="InpClaimCurrency" @bind-Value="model.MainClaimHeaderVM.ClaimCurrency" class="form-control" disabled />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-2 d-flex align-items-center">
+                <label for="InpCategory" class="form-label">Category</label>
+            </div>
+            <div class="col-md-4">
+                <InputText id="InpCategory" @bind-Value="model.MainClaimHeaderVM.ClaimCategory" class="form-control" disabled />
+            </div>
+        </div>
+
+        <div class="row mb-2 mt-5">
+            <h4 class="mb-2">Claim Details</h4>
+            <!-- Table View -->
+            <div class="table-view">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-secondary text-center">
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Expenses</th>
+                            <th scope="col">Expenses Type</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Unit Price</th>
+                            <th scope="col">Currency</th>
+                            <th scope="col">Transaction Amount</th>
+                            <th scope="col">Exchange Rate</th>
+                            <th scope="col">
+                                Sub Total
+                                @if (!string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.ClaimCurrency))
+                                {
+                                    @($" ({model.MainClaimHeaderVM.ClaimCurrency})")
+                                }
+                            </th>
+                            <th scope="col">Attachment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (model.SubClaimDetailsVM.Count > 0)
+                        {
+                            @foreach (var sub in model.SubClaimDetailsVM)
+                            {
+                                <tr class="text-center">
+                                    <td>@sub.TransactionDate.Value.ToString(ConstantHelper.DateFormat.DefaultDateFormat)</td>
+                                    <td>
+                                        <a href="javascript:void(0);" @onclick="() => openViewClaimModal(sub)">
+                                            @sub.Expenses
+                                        </a>
+                                    </td>
+                                    <td>@sub.ExpensesSubtype</td>
+                                    <td>@sub.Quantity</td>
+                                    <td class="text-end">@sub.UnitPriceConverted</td>
+                                    <td>@sub.TransactionCurrency</td>
+                                    <td class="text-end">@sub.TransactionAmount.Value.ToString("F2")</td>
+                                    <td>@sub.ExchangeRate?.ToString("N6")</td>
+                                    <td class="text-end">@sub.SubtotalClaimAmount</td>
+                                    <td><a href="@sub.AttachmentPathUrl" target="_blank">@sub.AttachmentFileName</a></td>
+                                </tr>
+                            }
+                            <tr class="fw-bold table-light">
+                                <td colspan="8" class="text-end">
+                                    Total Claims Amount
+                                    @if (!string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.ClaimCurrency))
+                                    {
+                                        @($" ({model.MainClaimHeaderVM.ClaimCurrency})")
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @model.SubClaimDetailsVM.Sum(x => x.SubtotalClaimAmount).Value.ToString("F2")
+                                </td>
+                                <td></td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-muted text-center">No subclaims yet</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Card View (Mobile) -->
+            <div class="card-view">
+                @if (model.SubClaimDetailsVM?.Count > 0)
+                {
+                    @for (int i = 0; i < model.SubClaimDetailsVM.Count; i++)
+                    {
+                        var sub = model.SubClaimDetailsVM[i];
+                        <div class="col">
+                            <div class="card mb-3">
+                                <!-- Card Header with index -->
+                                <div class="card-header d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <strong>Item @(@i + 1)</strong>
+                                    </div>
+                                    <a href="javascript:void(0);" @onclick="() => openViewClaimModal(sub)" title="View">
+                                        <i class="bi bi-info-circle fs-5 text-primary"></i>
+                                    </a>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Date</label>
+                                            <div>@sub.TransactionDate.Value.ToString(ConstantHelper.DateFormat.DefaultDateFormat)</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Expenses</label>
+                                            <div>@sub.Expenses</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Expenses Type</label>
+                                            <div>@sub.ExpensesSubtype</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Quantity</label>
+                                            <div>@sub.Quantity</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Unit Price</label>
+                                            <div>@sub.UnitPriceConverted</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Currency</label>
+                                            <div>@sub.TransactionCurrency</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Transaction Amount</label>
+                                            <div>@sub.TransactionAmount.Value.ToString("F2")</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">Exchange Rate</label>
+                                            <div>@sub.ExchangeRate.Value.ToString("F2")</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">
+                                                Sub Total
+                                                @if (!string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.ClaimCurrency))
+                                                {
+                                                    @($" ({model.MainClaimHeaderVM.ClaimCurrency})")
+                                                }
+                                            </label>
+                                            <div>@sub.SubtotalClaimAmount.Value.ToString("F2")</div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold">Attachment</label>
+                                            <div>
+                                                @if (!string.IsNullOrWhiteSpace(sub.AttachmentPathUrl))
+                                                {
+                                                    <a href="@sub.AttachmentPathUrl" target="_blank">@sub.AttachmentFileName</a>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="card border-info mt-3">
+                        <div class="card-body text-center">
+                            <h5 class="card-title mb-2 fw-bold">
+                                Total Claims Amount
+                                @if (!string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.ClaimCurrency))
+                                {
+                                    @($" ({model.MainClaimHeaderVM.ClaimCurrency})")
+                                }
+                            </h5>
+                            <h3 class="fw-bold text-primary mb-0">
+                                @model.SubClaimDetailsVM.Sum(x => x.SubtotalClaimAmount).Value.ToString("F2")
+                            </h3>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted p-3">No subclaims yet</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="claimDetailsModal" tabindex="-1" role="dialog" aria-labelledby="ClaimDetails" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content shadow-sm border-0 rounded-3">
+
+            <!-- Header -->
+            <div class="modal-header bg-light py-3">
+                <h4 class="modal-title fw-semibold text-primary">
+                    <i class="bi bi-receipt me-2"></i> Claim Details
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body px-3 py-3">
+                <div class="mb-3 d-flex align-items-center">
+                    <span class="fw-semibold me-2" style="width: 35%">Frequency:</span>
+                    <RadzenTextBox @bind-Value="model.ExpenseModal.Frequency" Name="frequency" ReadOnly Style="flex:1" />
+                </div>
+                <div class="mb-3 d-flex align-items-center">
+                    <span class="fw-semibold me-2" style="width: 35%">Claim Limit:</span>
+                    <RadzenNumeric @bind-Value="model.ExpenseModal.ClaimLimit" Name="claimLimit" ReadOnly ShowUpDown="false" Style="flex:1" />
+                </div>
+                <div class="mb-2 d-flex align-items-center">
+                    <span class="fw-semibold me-2" style="width: 35%">Description:</span>
+                    <RadzenTextBox @bind-Value="model.ExpenseModal.Description" Name="description" ReadOnly Style="flex:1" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ApprovalFormVM model { get; set; }
+    [Parameter, EditorRequired] public string spHostUrl { get; set; }
+    [Parameter, EditorRequired] public string accessToken { get; set; }
+
+    private async Task openViewClaimModal(SubClaimDetailsVM claim)
+    {
+        if (claim == null) return;
+
+        model.ExpenseModal = new PartialModelExpenseModal();
+
+        model.ExpenseModal = await IApprovalProcess.GetExpenseModalInfo(claim, spHostUrl, accessToken);
+
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#claimDetailsModal");
+    }
+}

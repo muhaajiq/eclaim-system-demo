@@ -1,0 +1,660 @@
+﻿@inject IJSRuntime JS
+@inject PeoplePickerHelper PeoplePickerHelper
+@inject DialogService DialogService
+@inject LogHelper LogHelper
+@inject TokenHelper TokenHelper
+@inject IWorkflowProcess WorkflowProcess
+
+<div class="workflow-history-section">
+
+    <!-- Table View (Desktop) -->
+    <div class="table-view">
+        <table class="table table-bordered table-hover">
+            <thead class="table-light text-center">
+                <tr>
+                    <th style="white-space: nowrap">Workflow Stage</th>
+                    <th style="white-space: nowrap">Assignee Name</th>
+                    <th style="white-space: nowrap">Assigned Date</th>
+                    <th style="white-space: nowrap">Due date</th>
+                    <th style="white-space: nowrap">Status</th>
+                    <th style="white-space: nowrap">Actioned Date</th>
+                    <th style="white-space: nowrap">Comments</th>
+                    <th style="white-space: nowrap">Actioned By</th>
+                    <th style="white-space: nowrap">Action</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (WorkflowHistoyModel.WorkflowHistoryList.Count == 0)
+                {
+                    <tr>
+                        <td colspan="11" class="text-center text-muted">No workflow History.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in WorkflowHistoyModel.WorkflowHistoryList)
+                    {
+                        <tr class="align-middle">
+                            <td>@item.StepName</td>
+                            <td>@item.AssigneeName</td>
+                            <td>@item.AssignedDate</td>
+                            <td>@item.DueDate</td>
+                            <td>
+                                @{
+                                    var cssClass = item.Status switch
+                                    {
+                                        ConstantHelper.TaskStatus.Completed => "complete-color",
+                                        ConstantHelper.TaskStatus.IN_Progress => "in-progress-color",
+                                        ConstantHelper.TaskStatus.Reassigned => "reassigned-color",
+                                        ConstantHelper.TaskStatus.Removed => "removed-color",
+                                        _ => "default-color"
+                                    };
+                                }
+                                <span class="@cssClass">@item.Status</span>
+                            </td>
+                            <td>@item.ActionedDate</td>
+                            <td>@item.Comments</td>
+                            <td>@item.ActionedByName</td>
+                            <td>@item.Action</td>
+                            <td>
+                                @if (item.ShowRemoveLink)
+                                {
+                                    <a href="javascript:void(0);" @onclick="() => openReassignModel(item.TaskID)">Reassign</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Card View (Mobile) -->
+    <div class="card-view">
+        <div class="row row-cols-1 g-3">
+            @if (WorkflowHistoyModel.WorkflowHistoryList.Count == 0)
+            {
+                <div class="text-center text-muted p-3">No workflow history.</div>
+            }
+            else
+            {
+                @foreach (var item in WorkflowHistoyModel.WorkflowHistoryList)
+                {
+                    <div class="col">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header card-section-bg d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">@item.StepName</h6>
+                                @{
+                                    var cssClass = item.Status switch
+                                    {
+                                        ConstantHelper.TaskStatus.Completed => "badge bg-success",
+                                        ConstantHelper.TaskStatus.IN_Progress => "badge bg-warning text-dark",
+                                        ConstantHelper.TaskStatus.Reassigned => "badge bg-primary",
+                                        ConstantHelper.TaskStatus.Removed => "badge bg-danger",
+                                        _ => "badge bg-secondary"
+                                    };
+                                }
+                                <span class="@cssClass">@item.Status</span>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Assignee</label>
+                                        <inputText class="form-control" Value="@item.AssigneeName" readonly />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Assigned</label>
+                                        <inputText class="form-control" Value="@item.AssignedDate" readonly />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Due</label>
+                                        <inputText class="form-control" Value="@item.DueDate" readonly />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Actioned Date</label>
+                                        <inputText class="form-control" Value="@item.ActionedDate" readonly />
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <label class="form-label">Comments</label>
+                                        <textarea class="form-control" Value="@item.Comments" readonly />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Actioned By</label>
+                                        <inputText class="form-control" Value="@item.ActionedByName" readonly />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Action</label>
+                                        <inputText class="form-control" Value="@item.Action" readonly />
+                                    </div>
+                                </div>
+
+                                @if (item.ShowRemoveLink)
+                                {
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary"
+                                           @onclick="() => openReassignModel(item.TaskID)">
+                                            Reassign
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    @if (WorkflowHistoyModel.isWFRunnning)
+    {
+        <label>Add New Actioner to Current Stage</label>
+        <div id='divNew' class="cam-peoplepicker-userlookup ms-fullWidth">
+            <PeoplePickerComponent SpHostUrl="@spHostUrl"
+                                   AccessToken="@accessToken"
+                                   @bind-SelectedUser="NewActionerUser"
+                                   OnUserSelected="OnAddActionerSelected" />
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+            <button type="button" class="btn btn-primary" @onclick="addNewActioner">Submit</button>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="reassignModal" tabindex="-1" role="dialog" aria-labelledby="Reassgin Actioner" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title m-0">Reassign Actioner</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- The form is placed inside the body of modal -->
+                @* <form id="loginForm" method="post" class="form-horizontal"> *@
+                <div class="row mb-3 required_label">
+                    <label class="col-md-4 control-label">Reassign Actioner</label>
+                    <div class="col-md-8">
+                        <PeoplePickerComponent SpHostUrl="@spHostUrl"
+                                               AccessToken="@accessToken"
+                                               @bind-SelectedUser="ReassignActionerUser"
+                                               OnUserSelected="OnReassignActionerSelected" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-md-4 control-label">Comments</label>
+                    <div class="col-md-8">
+                        @* <textarea style="resize: vertical; max-height: 200px; min-height: 100px; width: 100%;" rows="4" cols="50" id="reassignComments"></textarea><br /> *@
+                        <InputTextArea @bind-Value="Comments" class="form-control" style="resize: vertical; max-height: 200px; min-height: 100px;" />
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+                    <button type="button" class="btn btn-success" @onclick="reassignActioner">Confirm</button>
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Close</button>
+                </div>
+                @* </form> *@
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="Delete Actioner" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title m-0">Delete Actioner</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" id="btnCancelDeleteModel" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- The form is placed inside the body of modal -->
+                <form id="loginForm" method="post" class="form-horizontal">
+                    <div class="alert alert-danger" id="deleteerroralert" style="display:none;">
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-3 control-label required-asterisk">Remarks</label>
+                        <div class="col-md-9">
+                            <InputTextArea @bind-Value="WorkflowHistoyModel.Remark" class="form-control" style="resize: vertical; max-height: 200px; min-height: 100px;" rows="4" cols="50" />
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+                        <button type="button" class="btn btn-success" @onclick="deleteActioner">Confirm</button>
+                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteAllModal" tabindex="-1" role="dialog" aria-labelledby="Delete All Selected Actioners" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title m-0">Delete All Selected Actioners</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- The form is placed inside the body of modal -->
+                <form id="loginForm" method="post" class="form-horizontal">
+                    <div class="alert alert-danger" id="deleteallerroralert" style="display:none;">
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-3 control-label required-asterisk">Remarks</label>
+                        <div class="col-md-9">
+                            <InputTextArea @bind-Value="WorkflowHistoyModel.Remark" class="form-control" style="resize: vertical; max-height: 200px; min-height: 100px;" rows="4" cols="50" />
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+                        <button type="button" class="btn btn-success" @onclick="deleteAllActioner">Confirm</button>
+                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    [Parameter]
+    public string accessToken { get; set; }
+    // [Parameter]
+    public string appAccessToken { get; set; }
+
+    [Parameter, EditorRequired]
+    public PartialModelAdminWorkflowHistory WorkflowHistoyModel { get; set; }
+
+    [Parameter] public EventCallback<PartialModelAdminWorkflowHistory> OnAdminWorkflowHistoryChanged { get; set; }
+
+    public PeoplePickerUser NewActionerUser;
+    public PeoplePickerUser ReassignActionerUser;
+
+    public int? SelectedTaskID;
+
+    public int? DeleteTaskID;
+
+    public string Comments { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // appAccessToken = await TokenHelper.GetAccessTokenFromHybridApp(spHostUrl);
+        accessToken = await TokenHelper.GetUserAccessToken();
+        appAccessToken = await TokenHelper.GetUserAccessToken();
+    }
+
+    private async Task reassignActioner()
+    {
+        WorkflowHistory selectedWF = new();
+
+        ReassignActionerVM reassignActionerVM = new ReassignActionerVM();
+        bool isSuccess = false;
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalGeneralLoading", "Reassigning Actioner", "Please wait while we are processing...");
+
+            if (!await ValidateActioner(ConstantHelper.WorkflowManagementAction.Reassign))
+            {
+                await JS.InvokeVoidAsync("Swal.close");
+                return;
+            }
+
+            reassignActionerVM.ProcessID = int.Parse(WorkflowHistoyModel.ProcessID);
+            reassignActionerVM.TaskID = SelectedTaskID.Value;
+            reassignActionerVM.NewActioner = ReassignActionerUser;
+
+            selectedWF = WorkflowHistoyModel.WorkflowHistoryList.Where(x => x.TaskID == SelectedTaskID).FirstOrDefault();
+
+            if (selectedWF == null)
+            {
+                await JS.InvokeVoidAsync("Swal.close");
+                return;
+            }
+
+            isSuccess = await WorkflowProcess.ReassignActioner(reassignActionerVM, spHostUrl, accessToken);
+
+            await closeReassignModel();
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (!isSuccess)
+            {
+                await ShowErrorAlert(ConstantHelper.WorkflowManagementAction.Reassign);
+                return;
+            }
+            else
+            {
+                await ShowSucessMessage(ConstantHelper.WorkflowManagementAction.Reassign);
+                await TriggerParentReload();
+                await ClearReassignActioner();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+            await JS.InvokeVoidAsync("showSwalError", "Unexpected error while removing all actioners.");
+
+            LogHelper.LogMessage("AdminWorkflowHistoryTab - reassignActioner Error: " + ex.ToString());
+        }
+    }
+
+    private async Task deleteAllActioner()
+    {
+        if (string.IsNullOrWhiteSpace(WorkflowHistoyModel.Remark))
+        {
+            await ShowValidationErrorMessage("Remarks is required to delete all the actioners.");
+            return;
+        }
+
+        RemoveAllActionerVM removeAllActionerVM = new RemoveAllActionerVM();
+        bool isSuccess = false;
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalGeneralLoading", "Removing Actioners", "Please wait while we are removing all actioners...");
+
+            removeAllActionerVM.TaskIDs = WorkflowHistoyModel.WorkflowHistoryList.Where(x => x.IsChecked == true).Select(x => x.TaskID).ToList();
+
+            removeAllActionerVM.WorkflowNames = WorkflowHistoyModel.WorkflowHistoryList.Where(x => x.IsChecked == true).Select(x => x.ProcessName.ToString()).ToList();
+
+            removeAllActionerVM.ProcessID = int.Parse(WorkflowHistoyModel.ProcessID);
+
+            removeAllActionerVM.Remark = WorkflowHistoyModel.Remark;
+
+            isSuccess = await WorkflowProcess.RemoveAllActioner(removeAllActionerVM, spHostUrl, accessToken, appAccessToken);
+
+            await closeRemoveAllModel();
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (!isSuccess)
+            {
+                await ShowErrorAlert(ConstantHelper.WorkflowManagementAction.Remove);
+                return;
+            }
+            else
+            {
+                await ShowSucessMessage(ConstantHelper.WorkflowManagementAction.Remove);
+                await TriggerParentReload();
+                await ClearRemoveActioner();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("AdminWorkflowHistoryTab - reassignActioner Error: " + ex.ToString());
+        }
+    }
+
+    private async Task deleteActioner()
+    {
+        if (string.IsNullOrWhiteSpace(WorkflowHistoyModel.Remark))
+        {
+            await ShowValidationErrorMessage("Remarks is required to delete the actioner.");
+            return;
+        }
+
+        RemoveActionerVM removeActionerVM = new RemoveActionerVM();
+        bool isSuccess = false;
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalGeneralLoading", "Removing Actioner", "Please wait while we are removing the actioner...");
+
+            removeActionerVM.TaskID = DeleteTaskID.Value;
+            removeActionerVM.WorkflowName = WorkflowHistoyModel.WorkflowHistoryList
+                .Where(x => x.TaskID == removeActionerVM.TaskID)
+                .Select(x => x.ProcessName.ToString())
+                .FirstOrDefault();
+            removeActionerVM.ProcessID = int.Parse(WorkflowHistoyModel.ProcessID);
+            removeActionerVM.Remarks = WorkflowHistoyModel.Remark;
+
+            isSuccess = await WorkflowProcess.RemoveActioner(removeActionerVM, spHostUrl, accessToken, appAccessToken);
+
+            await closeRemoveModel();
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (!isSuccess)
+            {
+                await ShowErrorAlert(ConstantHelper.WorkflowManagementAction.Remove);
+                return;
+            }
+            else
+            {
+                await ShowSucessMessage(ConstantHelper.WorkflowManagementAction.Remove);
+                await TriggerParentReload();
+                await ClearRemoveActioner();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("AdminWorkflowHistoryTab - deleteActioner Error: " + ex.ToString());
+        }
+    }
+
+    private async Task addNewActioner()
+    {
+        AddActionerVM addActionerModel = new AddActionerVM();
+
+        bool isSuccess = false;
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalGeneralLoading", "Adding Actioner", "Please wait while we are adding the new actioner...");
+
+            if (!await ValidateActioner(ConstantHelper.WorkflowManagementAction.AddNew))
+            {
+                await JS.InvokeVoidAsync("Swal.close");
+                return;
+            }
+
+            addActionerModel.NewActioner.Add(NewActionerUser);
+
+            int processID = int.Parse(WorkflowHistoyModel.ProcessID);
+
+            isSuccess = await WorkflowProcess.AddActioner(addActionerModel, spHostUrl, accessToken, appAccessToken);
+
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (!isSuccess)
+            {
+                await ShowErrorAlert(ConstantHelper.WorkflowManagementAction.AddNew);
+                return;
+            }
+            else
+            {
+                await ShowSucessMessage(ConstantHelper.WorkflowManagementAction.AddNew);
+                await TriggerParentReload();
+                await ClearNewActionerModel();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("AdminWorkflowHistoryTab - addNewActioner Error: " + ex.ToString());
+        }
+    }
+
+
+    private async Task openReassignModel(int taskID)
+    {
+        SelectedTaskID = taskID;
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#reassignModal");
+    }
+
+    private async Task closeReassignModel()
+    {
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#reassignModal");
+    }
+
+    private async Task openRemoveModel(int taskID)
+    {
+        DeleteTaskID = taskID;
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#deleteModal");
+    }
+
+    private async Task closeRemoveModel()
+    {
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#deleteModal");
+    }
+
+    private async Task openRemoveAllModel()
+    {
+        if (!await ValidateActioner(ConstantHelper.WorkflowManagementAction.RemoveAll)) return;
+
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#deleteAllModal");
+    }
+
+    private async Task closeRemoveAllModel()
+    {
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#deleteAllModal");
+    }
+
+    private async Task OnAddActionerSelected(PeoplePickerUser user)
+    {
+        NewActionerUser = user;
+    }
+
+    private async Task OnReassignActionerSelected(PeoplePickerUser user)
+    {
+        ReassignActionerUser = user;
+    }
+
+    private async Task<bool> ValidateActioner(string action)
+    {
+        switch (action)
+        {
+            case ConstantHelper.WorkflowManagementAction.AddNew:
+                if (NewActionerUser == null)
+                {
+                    await ShowWarningMessage("Please select one user to add to the current stage.");
+                    return false;
+                }
+                break;
+
+            case ConstantHelper.WorkflowManagementAction.Reassign:
+                if (ReassignActionerUser == null)
+                {
+                    await ShowWarningMessage("Please select the user to reassign task.");
+                    return false;
+                }
+                break;
+
+            case ConstantHelper.WorkflowManagementAction.RemoveAll:
+                if (!WorkflowHistoyModel.WorkflowHistoryList.Any(x => x.IsChecked))
+                {
+                    await ShowWarningMessage("Please select at least one of the tasks you want to remove.");
+                    return false;
+                }
+                break;
+        }
+
+        return true;
+    }
+
+    private async Task ShowValidationErrorMessage(string message)
+    {
+        await JS.InvokeVoidAsync("Swal.fire", new
+        {
+            title = "Validation Error",
+            text = message,
+            icon = "error",
+            confirmButtonText = "OK",
+            customClass = new
+            {
+                title = "swal-title-custom",
+                text = "swal-text-custom"
+            }
+        });
+    }
+
+    private async Task ShowWarningMessage(string message)
+    {
+        await JS.InvokeVoidAsync("Swal.fire", new
+        {
+            title = "Selection Required",
+            text = message,
+            icon = "warning",
+            confirmButtonText = "OK",
+            customClass = new
+            {
+                title = "swal-title-custom",
+                text = "swal-text-custom"
+            }
+        });
+    }
+
+    private async Task ShowSucessMessage(string action)
+    {
+        await JS.InvokeVoidAsync("Swal.fire", new
+        {
+            title = "Success",
+            text = $"You have successfully {action} actioner!",
+            icon = "success",
+            confirmButtonText = "OK",
+            customClass = new
+            {
+                title = "swal-title-custom",
+                text = "swal-text-custom"
+            }
+        });
+    }
+
+    private async Task ShowErrorAlert(string action)
+    {
+        await JS.InvokeVoidAsync("Swal.fire", new
+        {
+            title = "Oops...",
+            text = $"Something went wrong while trying to {action} actioner!",
+            icon = "error",
+            confirmButtonText = "OK",
+            customClass = new
+            {
+                title = "swal-title-custom",
+                text = "swal-text-custom"
+            }
+        });
+    }
+
+    private async Task ClearReassignActioner()
+    {
+        //TODO
+        ReassignActionerUser = null;
+        SelectedTaskID = null;
+        Comments = string.Empty;
+    }
+
+    private async Task ClearRemoveActioner()
+    {
+        SelectedTaskID = null;
+        Comments = string.Empty;
+    }
+
+    private async Task ClearNewActionerModel()
+    {
+        NewActionerUser = null;
+    }
+
+    private async Task TriggerParentReload()
+    {
+        await OnAdminWorkflowHistoryChanged.InvokeAsync();
+    }
+}

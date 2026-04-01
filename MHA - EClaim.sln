@@ -1,0 +1,117 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36203.30
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Business", "Business", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{A3AD347E-5473-4179-A09C-F56C2E3E5EE3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Library", "Library", "{4C2D76F6-2D5E-48A7-B9FD-96F3D1112C48}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Presentation", "Presentation", "{A8A562FE-0708-4889-B44E-C1549AF3F134}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{065FE0A0-41C0-43F7-8BD3-F54448CC0F99}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{CE812F18-1D0F-4EB8-BC76-B0DECFA0EBB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.Business", "Business\MHA.ECLAIM.Business\MHA.ECLAIM.Business.csproj", "{7D854CEA-43FA-E7A4-35BF-922CED1FA798}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.Data", "Data\MHA.ECLAIM.Data\MHA.ECLAIM.Data.csproj", "{D277DFD7-AA43-0B27-E68F-3FA900D6249E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.Web", "Presentation\MHA.ECLAIM.Web\MHA.ECLAIM.Web.csproj", "{EE17D383-1100-985B-15FC-33B963942935}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.Entities", "Shared\MHA.ECLAIM.Entities\MHA.ECLAIM.Entities.csproj", "{0FE4BD14-536D-F3F8-5467-2A73818F6BF7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.Framework", "Shared\MHA.ECLAIM.Framework\MHA.ECLAIM.Framework.csproj", "{A9603909-0F5B-1FEB-3FAD-3305A537D3D7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Excel4.5", "Excel4.5", "{CB355B54-02FD-4FDF-8C57-6F4550C126D6}"
+	ProjectSection(SolutionItems) = preProject
+		Library\Excel4.5\Excel.4.5.dll = Library\Excel4.5\Excel.4.5.dll
+		Library\Excel4.5\ICSharpCode.SharpZipLib.dll = Library\Excel4.5\ICSharpCode.SharpZipLib.dll
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MHA.Framework.Core.Helper", "MHA.Framework.Core.Helper", "{AA7C80EA-4ED9-49B3-9D2E-33524AF6284B}"
+	ProjectSection(SolutionItems) = preProject
+		Library\MHA.Framework.Core.Helper\MHA.Framework.Core.General.dll = Library\MHA.Framework.Core.Helper\MHA.Framework.Core.General.dll
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MHA.Framework.Core.SP", "MHA.Framework.Core.SP", "{50A02AFE-2BE5-43BD-9D85-A81A947743A8}"
+	ProjectSection(SolutionItems) = preProject
+		Library\MHA.Framework.Core.SP\MHA.Framework.Core.SP.dll = Library\MHA.Framework.Core.SP\MHA.Framework.Core.SP.dll
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MHA.Framework.Core.Workflow", "MHA.Framework.Core.Workflow", "{AF2584D9-C093-4100-9F47-9B54DE79994C}"
+	ProjectSection(SolutionItems) = preProject
+		Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BL.dll = Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BL.dll
+		Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BO.dll = Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BO.dll
+		Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.DL.dll = Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.DL.dll
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.Process", "Presentation\MHA.ECLAIM.Process\MHA.ECLAIM.Process.csproj", "{A62AA332-876D-4544-B958-0EC457798F01}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Console", "Console", "{D2E45557-0EED-4CCD-81A0-E25B82B70ADE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.WorkflowTestConsole", "Console\MHA.ECLAIM.WorkflowTestConsole\MHA.ECLAIM.WorkflowTestConsole.csproj", "{914E831A-75B1-421D-AF34-F7F780BC6E1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MHA.ECLAIM.WebAPI", "Services\MHA.ECLAIM.Services\MHA.ECLAIM.WebAPI\MHA.ECLAIM.WebAPI.csproj", "{19D0D15D-C7BF-9381-AB01-E6C784F3E9CE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7D854CEA-43FA-E7A4-35BF-922CED1FA798}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D854CEA-43FA-E7A4-35BF-922CED1FA798}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D854CEA-43FA-E7A4-35BF-922CED1FA798}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D854CEA-43FA-E7A4-35BF-922CED1FA798}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D277DFD7-AA43-0B27-E68F-3FA900D6249E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D277DFD7-AA43-0B27-E68F-3FA900D6249E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D277DFD7-AA43-0B27-E68F-3FA900D6249E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D277DFD7-AA43-0B27-E68F-3FA900D6249E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE17D383-1100-985B-15FC-33B963942935}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE17D383-1100-985B-15FC-33B963942935}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE17D383-1100-985B-15FC-33B963942935}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE17D383-1100-985B-15FC-33B963942935}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FE4BD14-536D-F3F8-5467-2A73818F6BF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FE4BD14-536D-F3F8-5467-2A73818F6BF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FE4BD14-536D-F3F8-5467-2A73818F6BF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FE4BD14-536D-F3F8-5467-2A73818F6BF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9603909-0F5B-1FEB-3FAD-3305A537D3D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9603909-0F5B-1FEB-3FAD-3305A537D3D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9603909-0F5B-1FEB-3FAD-3305A537D3D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9603909-0F5B-1FEB-3FAD-3305A537D3D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A62AA332-876D-4544-B958-0EC457798F01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A62AA332-876D-4544-B958-0EC457798F01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A62AA332-876D-4544-B958-0EC457798F01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A62AA332-876D-4544-B958-0EC457798F01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{914E831A-75B1-421D-AF34-F7F780BC6E1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{914E831A-75B1-421D-AF34-F7F780BC6E1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{914E831A-75B1-421D-AF34-F7F780BC6E1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19D0D15D-C7BF-9381-AB01-E6C784F3E9CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19D0D15D-C7BF-9381-AB01-E6C784F3E9CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19D0D15D-C7BF-9381-AB01-E6C784F3E9CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19D0D15D-C7BF-9381-AB01-E6C784F3E9CE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7D854CEA-43FA-E7A4-35BF-922CED1FA798} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{D277DFD7-AA43-0B27-E68F-3FA900D6249E} = {A3AD347E-5473-4179-A09C-F56C2E3E5EE3}
+		{EE17D383-1100-985B-15FC-33B963942935} = {A8A562FE-0708-4889-B44E-C1549AF3F134}
+		{0FE4BD14-536D-F3F8-5467-2A73818F6BF7} = {065FE0A0-41C0-43F7-8BD3-F54448CC0F99}
+		{A9603909-0F5B-1FEB-3FAD-3305A537D3D7} = {065FE0A0-41C0-43F7-8BD3-F54448CC0F99}
+		{CB355B54-02FD-4FDF-8C57-6F4550C126D6} = {4C2D76F6-2D5E-48A7-B9FD-96F3D1112C48}
+		{AA7C80EA-4ED9-49B3-9D2E-33524AF6284B} = {4C2D76F6-2D5E-48A7-B9FD-96F3D1112C48}
+		{50A02AFE-2BE5-43BD-9D85-A81A947743A8} = {4C2D76F6-2D5E-48A7-B9FD-96F3D1112C48}
+		{AF2584D9-C093-4100-9F47-9B54DE79994C} = {4C2D76F6-2D5E-48A7-B9FD-96F3D1112C48}
+		{A62AA332-876D-4544-B958-0EC457798F01} = {A8A562FE-0708-4889-B44E-C1549AF3F134}
+		{914E831A-75B1-421D-AF34-F7F780BC6E1B} = {D2E45557-0EED-4CCD-81A0-E25B82B70ADE}
+		{19D0D15D-C7BF-9381-AB01-E6C784F3E9CE} = {CE812F18-1D0F-4EB8-BC76-B0DECFA0EBB9}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {616B9BA3-7DDC-4922-9955-4A7FC1E71C7A}
+	EndGlobalSection
+EndGlobal

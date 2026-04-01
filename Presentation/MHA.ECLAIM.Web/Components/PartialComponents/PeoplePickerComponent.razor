@@ -1,0 +1,244 @@
+﻿@inject PeoplePickerHelper PeoplePickerHelper
+
+<div id="people-picker-component" class="position-relative w-100">
+    @if (IsMultiple)
+    {
+        // Show selected users
+        if (_selectedUsersInternal?.Any() == true)
+        {
+            foreach (var user in _selectedUsersInternal)
+            {
+                <div class="input-group mb-2">
+                    <input type="text"
+                           class="form-control"
+                           readonly
+                           value="@($"{user.Name} ({user.Email})")" />
+                    <button type="button"
+                            class="btn btn-outline-danger"
+                            @onclick="() => RemoveUser(user)"
+                            disabled="@Disabled">
+                        x
+                    </button>
+                </div>
+            }
+        }
+
+        // Always show input field in multiple mode
+        <input type="text"
+               class="form-control mb-1"
+               placeholder="Type a name..."
+               @bind="SearchQuery"
+               @bind:event="oninput"
+               disabled="@Disabled" />
+
+        @if (!Disabled)
+        {
+            @if (IsSearching)
+            {
+                <div class="text-muted small mb-1 searching-text" style="z-index: 2; background: white;">
+                    Searching... (@Suggestions.Count found)
+                </div>
+            }
+
+            @if (Suggestions?.Any() == true)
+            {
+                <div class="list-group shadow-sm w-100" style="max-height: 200px; overflow-y: auto; z-index: 1;">
+                    @foreach (var user in Suggestions)
+                    {
+                        <button type="button"
+                                class="list-group-item list-group-item-action"
+                                @onclick="() => SelectUser(user)">
+                            @user.Name (@user.Email)
+                        </button>
+                    }
+                </div>
+            }
+        }
+    }
+    else
+    {
+        // Single mode
+        if (_selectedUserInternal != null)
+        {
+            <div class="input-group mb-2">
+                <input type="text"
+                       class="form-control"
+                       readonly
+                       value="@($"{_selectedUserInternal.Name} ({_selectedUserInternal.Email})")" />
+                <button type="button"
+                        class="btn btn-outline-danger"
+                        @onclick="ClearSelection"
+                        disabled="@Disabled">
+                    x
+                </button>
+            </div>
+        }
+        else
+        {
+            <input type="text"
+                   class="form-control mb-1"
+                   placeholder="Type a name..."
+                   @bind="SearchQuery"
+                   @bind:event="oninput"
+                   disabled="@Disabled" />
+
+            @if (!Disabled)
+            {
+                @if (IsSearching)
+                {
+                    <div class="text-muted small mb-1 searching-text" style="z-index: 2; background: white;">
+                        Searching... (@Suggestions.Count found)
+                    </div>
+                }
+
+                @if (Suggestions?.Any() == true)
+                {
+                    <div class="list-group shadow-sm w-100" style="max-height: 200px; overflow-y: auto; z-index: 1;">
+                        @foreach (var user in Suggestions)
+                        {
+                            <button type="button"
+                                    class="list-group-item list-group-item-action"
+                                    @onclick="() => SelectUser(user)">
+                                @user.Name (@user.Email)
+                            </button>
+                        }
+                    </div>
+                }
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string SpHostUrl { get; set; } = string.Empty;
+    [Parameter] public string AccessToken { get; set; } = string.Empty;
+
+    [Parameter] public bool IsMultiple { get; set; } = false;
+
+    // Two-way bindable selected user
+    private PeoplePickerUser _selectedUserInternal;
+    private List<PeoplePickerUser> _selectedUsersInternal = new();
+
+    [Parameter] public PeoplePickerUser SelectedUser { get; set; }
+    [Parameter] public List<PeoplePickerUser> SelectedUsers { get; set; } = new();
+
+    [Parameter] public EventCallback<PeoplePickerUser> SelectedUserChanged { get; set; }
+    [Parameter] public EventCallback<List<PeoplePickerUser>> SelectedUsersChanged { get; set; }
+
+    [Parameter] public EventCallback<PeoplePickerUser> OnUserSelected { get; set; }
+    [Parameter] public EventCallback<List<PeoplePickerUser>> OnUsersSelected { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+    private string _searchQuery;
+    private string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            if (!Disabled && _searchQuery != value)
+            {
+                _searchQuery = value;
+                _ = SearchPeopleAsync();
+            }
+        }
+    }
+
+    private bool IsSearching { get; set; }
+    private List<PeoplePickerUser> Suggestions { get; set; } = new();
+
+    protected override void OnParametersSet()
+    {
+        if (IsMultiple)
+            _selectedUsersInternal = SelectedUsers ?? new List<PeoplePickerUser>();
+        else
+            _selectedUserInternal = SelectedUser;
+    }
+
+    private async Task SearchPeopleAsync()
+    {
+        if (Disabled)
+            return;
+
+        if (string.IsNullOrWhiteSpace(SearchQuery) || SearchQuery.Length < 3)
+        {
+            Suggestions.Clear();
+            IsSearching = false;
+            StateHasChanged();
+            return;
+        }
+
+        IsSearching = true;
+        Suggestions = await PeoplePickerHelper.SearchPeople(SearchQuery, SpHostUrl, AccessToken);
+        IsSearching = false;
+        StateHasChanged();
+    }
+
+    private async Task SelectUser(PeoplePickerUser user)
+    {
+        if (Disabled)
+            return;
+
+        // _selectedUserInternal = user;
+        // Suggestions.Clear();
+        // SearchQuery = string.Empty;
+        // await SelectedUserChanged.InvokeAsync(user);
+        // await OnUserSelected.InvokeAsync(user);
+        // StateHasChanged();
+
+        if (Disabled)
+            return;
+
+        if (IsMultiple)
+        {
+            if (!_selectedUsersInternal.Any(u => u.Email == user.Email))
+            {
+                _selectedUsersInternal.Add(user);
+                await SelectedUsersChanged.InvokeAsync(_selectedUsersInternal);
+            }
+        }
+        else
+        {
+            _selectedUserInternal = user;
+            await SelectedUserChanged.InvokeAsync(user);
+        }
+
+        Suggestions.Clear();
+        SearchQuery = string.Empty;
+        await OnUserSelected.InvokeAsync(user);
+        StateHasChanged();
+    }
+
+    private async void ClearSelection()
+    {
+        if (Disabled)
+            return;
+
+        // _selectedUserInternal = null;
+        // SearchQuery = string.Empty;
+        // Suggestions.Clear();
+        // await SelectedUserChanged.InvokeAsync(null);
+        // await OnUserSelected.InvokeAsync(null);
+        // StateHasChanged();
+
+        _selectedUserInternal = null;
+        _selectedUsersInternal.Clear();
+        SearchQuery = string.Empty;
+        Suggestions.Clear();
+
+        await SelectedUserChanged.InvokeAsync(null);
+        await SelectedUsersChanged.InvokeAsync(_selectedUsersInternal);
+        await OnUserSelected.InvokeAsync(null);
+        StateHasChanged();
+    }
+
+    private async void RemoveUser(PeoplePickerUser user)
+    {
+        if (Disabled)
+            return;
+
+        _selectedUsersInternal.Remove(user);
+        await SelectedUsersChanged.InvokeAsync(_selectedUsersInternal);
+        StateHasChanged();
+    }
+
+}

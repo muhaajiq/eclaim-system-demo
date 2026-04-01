@@ -1,0 +1,200 @@
+﻿@page "/CreateRequestForm"
+
+<PageTitle>New Request Form</PageTitle>
+
+<PageHeader Title="New Request"
+            ReferenceNo="Not Available"
+            WorkflowStatus=@mainClaimHeaderVM.WorkflowStage
+            FormType=@ConstantHelper.PageHeaderFormType.CreateRequestForm/>
+
+@if (showErrorAlert && mainClaimHeaderVM.HasError && !string.IsNullOrEmpty(mainClaimHeaderVM.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @((MarkupString)mainClaimHeaderVM.ErrorMessage)
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+        <button type="button" class="btn btn-outline-dark" @onclick="Close">Close</button>
+    </div>
+}
+else
+{
+    <EditForm Model="mainClaimHeaderVM">
+        <div class="d-flex">
+            <div class="flex-fill py-4 px-5">
+                @if (showFormErrorAlert && mainClaimHeaderVM.HasError && !string.IsNullOrEmpty(mainClaimHeaderVM.ErrorMessage))
+                {
+                    <div id="errorAlertTop" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @((MarkupString)mainClaimHeaderVM.ErrorMessage)
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="DismissErrorAlert"></button>
+                    </div>
+                }
+                <div>
+                    <!-- Requester Information Section -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header card-section-bg">
+                            Requester Information
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label">Company Code</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="mainClaimHeaderVM.RequesterCompanyCode" readonly />
+                                </div>
+
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label">Department</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="mainClaimHeaderVM.RequesterDepartment" readonly />
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label">Employee ID</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="mainClaimHeaderVM.RequesterEmployeeID" readonly />
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label">Date of Request </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="DateOfRequest" readonly />
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label">Employee Name</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="mainClaimHeaderVM.RequesterName" readonly />
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label">Cost Center</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="mainClaimHeaderVM.RequesterCostCenter" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Claim Information Section -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header card-section-bg">
+                            Claim Information
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label required-asterisk">Purpose of Claims</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <InputText class="form-control" @bind-Value="mainClaimHeaderVM.PurposeOfClaims" />
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label required-asterisk">Claim Currency</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenDropDown Data="mainClaimHeaderVM.CurrencyList"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Text"
+                                                    @bind-Value="mainClaimHeaderVM.ClaimCurrency"
+                                                    Change="@(args => OnClaimCurrencyChanged(args))"
+                                                    Placeholder="-- Select Currency --"
+                                                    Style="width:100%"
+                                                    Disabled="@DisableClaimInfo" />
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <label class="form-label required-asterisk">Category</label>
+                                </div>
+                                <div class="col-md-4">
+                                    <RadzenDropDown Data="mainClaimHeaderVM.ClaimCategories"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Id"
+                                                    @bind-Value="mainClaimHeaderVM.SelectedClaimCategorySpId"
+                                                    Change="@(args => SetSelectedCategoryText())"
+                                                    Placeholder="-- Select Category --"
+                                                    Style="width:100%"
+                                                    Disabled="@DisableClaimInfo" />
+                                </div>
+                                @if (IsTravelCategory(mainClaimHeaderVM.SelectedClaimCategorySpId))
+                                {
+                                    <div class="col-md-2 d-flex align-items-center">
+                                        <label class="form-label required-asterisk">Travel Request Ref. No.</label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <RadzenDropDown Data="mainClaimHeaderVM.TravelRequestRefNoList"
+                                        TextProperty="Text"
+                                        ValueProperty="Id"
+                                        @bind-Value="mainClaimHeaderVM.SelectedTravelRequestId"
+                                        Change="@(args => OnTravelRequestChanged(args))"
+                                        Placeholder="-- Select Travel Request Ref. No. --"
+                                        Style="width:100%" Disabled="@DisableClaimInfo" />
+                                        @if (!string.IsNullOrEmpty(mainClaimHeaderVM.SelectedTravelRequestId)
+                                                                        && int.TryParse(mainClaimHeaderVM.SelectedTravelRequestId, out var travelRequestId)
+                                                                        && travelRequestId > 0)
+                                        {
+                                            <div class="mt-2">
+                                                <a href="@BuildTravelRequestUrl(mainClaimHeaderVM.SelectedTravelRequestId)" target="_blank">
+                                                    View Details
+                                                </a>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+
+                            @if (DisableClaimInfo)
+                            {
+                                <div class="col-md-12 mt-1">
+                                    <small class="text-muted fst-italic ms-1">
+                                        Notes: To change Claim Currency or Category, please remove all existing claim items first.
+                                    </small>
+                                </div>
+                            }
+
+                            <br />
+                            <!-- Claim Details -->
+                            <div class="row mb-3">
+                                <ClaimDetailsTab MainClaimHeaderVM="@mainClaimHeaderVM" spHostUrl="@spHostUrl" accessToken="@accessToken" OnClaimChanged="OnClaimChanged" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Remarks Section -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header card-section-bg">
+                            Remarks
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div>
+                                    <InputTextArea class="form-control"
+                                                   @bind-Value="mainClaimHeaderVM.GeneralRemarks"
+                                                   rows="4" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-3 mb-3">
+                        <button type="button" class="btn btn-primary" @onclick="HandleSaveAsync">Save as Draft</button>
+                        <button type="button" class="btn btn-success" @onclick="HandleSubmitAsync">Submit</button>
+                        <button type="button" class="btn btn-outline-dark" @onclick="Close">Close</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}

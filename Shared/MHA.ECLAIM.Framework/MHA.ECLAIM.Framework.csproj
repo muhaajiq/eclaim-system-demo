@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <PackageReference Include="DocumentFormat.OpenXml.Framework" Version="3.3.0" />
+    <PackageReference Include="ElmahCore" Version="2.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.17" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.11.0" />
+    <PackageReference Include="Microsoft.SharePointOnline.CSOM" Version="16.1.26211.12010" />
+    <PackageReference Include="PnP.Core" Version="1.15.0" />
+    <PackageReference Include="PnP.Core.Auth" Version="1.15.0" />
+    <PackageReference Include="PnP.Framework" Version="1.18.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.7" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MHA.ECLAIM.Entities\MHA.ECLAIM.Entities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MHA.Framework.Core.General">
+      <HintPath>..\..\Library\MHA.Framework.Core.Helper\MHA.Framework.Core.General.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.SP">
+      <HintPath>..\..\Library\MHA.Framework.Core.SP\MHA.Framework.Core.SP.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.Workflow.BL">
+      <HintPath>..\..\Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BL.dll</HintPath>
+    </Reference>
+    <Reference Include="MHA.Framework.Core.Workflow.BO">
+      <HintPath>..\..\Library\MHA.Framework.Core.Workflow\MHA.Framework.Core.Workflow.BO.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

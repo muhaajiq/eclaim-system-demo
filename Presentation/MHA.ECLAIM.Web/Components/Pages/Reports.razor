@@ -1,0 +1,86 @@
+﻿@page "/Reports"
+@attribute [Authorize]
+@inject LogHelper LogHelper
+@inject TokenHelper TokenHelper
+@inject NavigationHelper NavHelper
+@inject IReportProcess reportProcess
+
+<PageTitle>Report Listing</PageTitle>
+<h2 class="page-title">Reports</h2>
+<div class="page-title-underline"></div>
+
+
+
+<div class="p-4">
+    @if (report.IsAuthorized)
+    {
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        Report Generator
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@NavHelper.BuildUrl("/WorkflowReport")"
+                           target="_blank"
+                           class="list-group-item list-group-item-action">
+                            Workflow Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        Report Listing
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @foreach (var reportLink in report.ReportLinks)
+                        {
+                            if (reportLink.Key == "EClaims Power BI")
+                            {
+                                <a href="@reportLink.Value" target="_blank" class="list-group-item list-group-item-action">
+                                    @reportLink.Key
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <AccessDenied />
+    }
+
+</div>
+
+
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+
+    ViewModelReportListing report = new ViewModelReportListing();
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+
+        try
+        {
+            report = await reportProcess.GetReportListing(spHostUrl, accessToken);
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("ReportBL - InitReportListing Error:" + ex.ToString());
+        }
+    }
+}

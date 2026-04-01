@@ -1,0 +1,65 @@
+﻿<div class="d-flex justify-content-between align-items-center text-white px-3"
+     style="background-color: #3a4c4d; height: 60px;">
+
+    <!-- Title -->
+    <div style="font-size: 1.2rem;">
+        @if (!string.IsNullOrWhiteSpace(Title))
+        {
+            <strong>@Title</strong>
+        }
+    </div>
+
+    @if (FormType == ConstantHelper.PageHeaderFormType.CreateRequestForm
+        || FormType == ConstantHelper.PageHeaderFormType.ViewRequestForm)
+    {
+        <!-- Divider & Details -->
+        <div class="d-flex align-items-center" style="height: 100%;">
+            <!-- Vertical blue line -->
+            <div style="border-left: 3px solid #04939b; height: 40px; margin-right: 15px;"></div>
+
+            <!-- Right-side content -->
+            <div style="font-size: 1rem; line-height: 1.2;">
+                <div>
+                    <span style="display: inline-block; width: 120px; text-align: left;">
+                        Reference No.
+                    </span>
+                    <span>: </span>
+                    <span>@(string.IsNullOrWhiteSpace(ReferenceNo) ? " -" : ReferenceNo)</span>
+                </div>
+                <div>
+                    <span style="display: inline-block; width: 120px; text-align: left;">
+                        Workflow Status
+                    </span>
+                    <span>: </span>
+                    <span>@(string.IsNullOrWhiteSpace(WorkflowStatus) ? " -" : WorkflowStatus)</span>
+                </div>
+            </div>
+        </div>
+    }
+    else if (FormType == ConstantHelper.PageHeaderFormType.ApprovalForm)
+    {
+        <!-- Divider & Details -->
+        <div class="d-flex align-items-center" style="height: 100%;">
+            <!-- Vertical blue line -->
+            <div style="border-left: 3px solid #04939b; height: 40px; margin-right: 15px;"></div>
+
+            <!-- Right-side content -->
+            <div style="font-size: 1rem; line-height: 1.2;">
+                <div>
+                    <span style="display: inline-block; width: 120px; text-align: left;">
+                        Reference No.
+                    </span>
+                    <span>: </span>
+                    <span>@(string.IsNullOrWhiteSpace(ReferenceNo) ? " -" : ReferenceNo)</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? ReferenceNo { get; set; }
+    [Parameter] public string? WorkflowStatus { get; set; }
+    [Parameter] public string? FormType { get; set; }
+}

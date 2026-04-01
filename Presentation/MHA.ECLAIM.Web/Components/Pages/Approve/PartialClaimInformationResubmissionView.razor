@@ -1,0 +1,1151 @@
+﻿@inject IApprovalProcess IApprovalProcess
+@inject IClaimProcess IClaimProcess
+@inject IJSRuntime JS
+@inject NavigationHelper NavigationHelper
+@inject LogHelper LogHelper
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header card-section-bg">
+        Claim Information
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-2 d-flex align-items-center">
+                <label class="form-label required-asterisk">Purpose of Claims</label>
+            </div>
+            <div class="col-md-4">
+                <InputText class="form-control" @bind-Value="model.MainClaimHeaderVM.PurposeOfClaims" />
+            </div>
+            <div class="col-md-2 d-flex align-items-center">
+                <label class="form-label required-asterisk">Claim Currency</label>
+            </div>
+            <div class="col-md-4">
+                <RadzenDropDown Data="model.MainClaimHeaderVM.CurrencyList"
+                                TextProperty="Text"
+                                ValueProperty="Text"
+                                @bind-Value="model.MainClaimHeaderVM.ClaimCurrency"
+                                Change="@(args => OnClaimCurrencyChanged(args))"
+                                Placeholder="-- Select Currency --"
+                                Style="width:100%"
+                                Disabled="@DisableClaimInfo" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-2 d-flex align-items-center">
+                <label class="form-label required-asterisk">Category</label>
+            </div>
+            <div class="col-md-4">
+                <RadzenDropDown Data="model.MainClaimHeaderVM.ClaimCategories"
+                                TextProperty="Text"
+                                ValueProperty="Id"
+                                @bind-Value="model.MainClaimHeaderVM.SelectedClaimCategorySpId"
+                                Change="@(args => SetSelectedCategoryText())"
+                                Placeholder="-- Select Category --"
+                                Style="width:100%"
+                                Disabled="@DisableClaimInfo" />
+            </div>
+            @if (IsTravelCategory(model.MainClaimHeaderVM.SelectedClaimCategorySpId))
+            {
+                <div class="col-md-2 d-flex align-items-center">
+                    <label class="form-label required-asterisk">Travel Request Ref. No.</label>
+                </div>
+                <div class="col-md-4">
+                    <RadzenDropDown Data="model.MainClaimHeaderVM.TravelRequestRefNoList"
+                                    TextProperty="Text"
+                                    ValueProperty="Id"
+                                    @bind-Value="model.MainClaimHeaderVM.SelectedTravelRequestId"
+                                    Placeholder="-- Select Travel Request Ref. No. --"
+                                    Style="width:100%" />
+                    @if (!string.IsNullOrEmpty(model.MainClaimHeaderVM.SelectedTravelRequestId)
+                                    && int.TryParse(model.MainClaimHeaderVM.SelectedTravelRequestId, out var travelRequestId)
+                                    && travelRequestId > 0)
+                    {
+                        <div class="mt-2">
+                            <a href="@BuildTravelRequestUrl(model.MainClaimHeaderVM.SelectedTravelRequestId)" target="_blank">
+                                View Details
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (DisableClaimInfo)
+        {
+            <div class="col-md-12 mt-1">
+                <small class="text-muted fst-italic ms-1">
+                    Notes: To change Claim Currency or Category, please remove all existing claim items first.
+                </small>
+            </div>
+        }
+
+        <br />
+        <!-- Claim Details -->
+        <div class="row mb-3">
+            <ClaimDetailsTab MainClaimHeaderVM="@model.MainClaimHeaderVM" spHostUrl="@spHostUrl" accessToken="@accessToken" OnClaimChanged="OnClaimChanged" />
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="claimDetailsModal" tabindex="-1" role="dialog" aria-labelledby="ClaimDetails" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+
+            <!-- Header -->
+            <div class="modal-header bg-light border-bottom">
+                <h4 class="modal-title fw-bold text-primary">
+                    <i class="bi bi-receipt me-2"></i> @(IsEdit ? "Edit Claim Details" : "Add Claim Details")
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body px-4">
+                <h3 class="text-center fw-bold text-decoration-underline mb-4">Claim Details</h3>
+
+                <RadzenTemplateForm Data="@model.MainClaimHeaderVM.CurrentClaimDetails" Submit="@((SubClaimDetailsVM args) => saveClaimDetails())">
+
+                    <div class="claim-info-card">
+                        <!-- Expenses + Subtype -->
+                        <RadzenRow>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Expenses</label>
+                                    <RadzenDropDown @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.Expenses"
+                                                    Data="@FilteredExpenses"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Value"
+                                                    Change="OnExpenseChanged"
+                                                    Placeholder="-- Select Expenses --"
+                                                    Style="width:100%;" Disabled="@IsReadonly" />
+                                </div>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Expenses Subtype</label>
+                                    <RadzenDropDown @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype"
+                                                    Data="@FilteredSubtypes"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Value"
+                                                    Change="OnSubtypeChanged"
+                                                    Placeholder="-- Select Expenses Subtype --"
+                                                    Style="width:100%;" Disabled="@IsReadonly">
+                                    </RadzenDropDown>
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+
+                        <!-- Transaction Date + Transaction Currency -->
+                        <RadzenRow class="mt-3">
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Transaction Date</label>
+                                    <RadzenDatePicker @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.TransactionDate"
+                                                      DateFormat="@ConstantHelper.DateFormat.DefaultDateFormat"
+                                                      Placeholder="-- Select Transaction Date --"
+                                                      Style="width:100%" Disabled="@IsReadonly" />
+                                </div>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Transaction Currency</label>
+                                    <RadzenDropDown @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency"
+                                                    Data="@model.MainClaimHeaderVM.CurrencyList"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Text"
+                                                    Placeholder="-- Select Currency --"
+                                                    Change="OnTransactionCurrencyChanged"
+                                                    Style="width:100%;" Disabled="@IsReadonly" />
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+
+                        <!-- Quantity + Unit Amount + Exchange Rate + Transaction Amount -->
+                        <RadzenRow class="mt-3">
+                            @if (model.MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted.HasValue && model.MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted != 0)
+                            {
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <div class="form-inline-field">
+                                        <label class="required-asterisk">Quantity</label>
+                                        <RadzenNumeric @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.Quantity"
+                                                       Style="width:100%;" Min="0" Step="1" Format="F0"
+                                                       Placeholder="Quantity/KM/Hour"
+                                                       Disabled="@(AllowManualTransactionAmount)"
+                                                       Change="@((decimal? v) => OnQuantityChanged(v))" />
+                                    </div>
+                                </RadzenColumn>
+
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <div class="form-inline-field">
+                                        <label>
+                                            Unit Amount
+                                            @if (!string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency))
+                                            {
+                                                @($" ({model.MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency})")
+                                            }
+                                        </label>
+                                        <RadzenNumeric @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted" ShowUpDown="false" class="numeric-right"
+                                                       Style="width:100%;" Format="F2" Disabled />
+                                    </div>
+                                </RadzenColumn>
+                            }
+                            else
+                            {
+                                <!-- No Unit Amount-->
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <div class="form-inline-field">
+                                        <label class="required-asterisk">Quantity</label>
+                                        <RadzenNumeric @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.Quantity"
+                                                       Style="width:100%;" Min="0" Step="1" Format="F0"
+                                                       Placeholder="Quantity/KM/Hour"
+                                                       Disabled="@(AllowManualTransactionAmount)"
+                                                       Change="@((decimal? v) => OnQuantityChanged(v))"
+                                                       ShowUpDown="@(!AllowManualTransactionAmount)" />
+                                    </div>
+                                </RadzenColumn>
+                            }
+
+                            <RadzenColumn Size="12" SizeMD="3">
+                                <div class="form-inline-field">
+                                    <label>
+                                        Exchange Rate
+                                        <span class="small-muted ms-1 fst-italic">@($"({model.MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency} → {model.MainClaimHeaderVM.ClaimCurrency})")</span>
+                                    </label>
+                                    <div>
+                                        <RadzenNumeric @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.ExchangeRate" class="numeric-right"
+                                                       Style="width:100%;" Format="F6" ShowUpDown="false"
+                                                       Disabled />
+                                    </div>
+                                </div>
+                            </RadzenColumn>
+
+                            <RadzenColumn Size="12" SizeMD="3">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Transaction Amount</label>
+                                    <div>
+                                        <RadzenNumeric class="numeric-right" @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.TransactionAmount"
+                                                       Style="width:100%;" Min="0" Step="0.01" Format="F2" ShowUpDown="false"
+                                                       Disabled="@(!AllowManualTransactionAmount)"
+                                                       Change="@((decimal? v) => OnTransactionAmountChanged(v))" />
+                                    </div>
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </div>
+
+                    <!-- Description -->
+                    <RadzenRow class="mt-4">
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <div class="form-inline-field">
+                                <label class="required-asterisk">Description</label>
+                                <RadzenTextArea @bind-Value="model.MainClaimHeaderVM.CurrentClaimDetails.Description"
+                                                Rows="5" Style="width:100%;" Disabled="@IsReadonly" />
+                            </div>
+                        </RadzenColumn>
+
+                        <!-- Info card -->
+                        @if (!string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype))
+                        {
+                            var maintenance = model.MainClaimHeaderVM.ExpensesMaintenanceList.FirstOrDefault(m => m.ExpensesSubtype == model.MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype);
+                            if (maintenance != null)
+                            {
+                                var txnCurrency = model.MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency ?? model.MainClaimHeaderVM.ClaimCurrency;
+                                var claimCurrency = model.MainClaimHeaderVM.ClaimCurrency ?? txnCurrency;
+
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <div class="claim-info-card" style="background:#fafafa;">
+                                        <div class="claim-total-row">
+                                            <div class="claim-info-label">Subtotal Claim Amount</div>
+                                            <div class="claim-info-value claim-balance">
+                                                @($"{model.MainClaimHeaderVM.CurrentClaimDetails.TransactionAmountConverted:N2} {claimCurrency}")
+                                            </div>
+                                        </div>
+                                        <div class="claim-info-row">
+                                            <div class="claim-info-label"><i class="fa-solid fa-sync me-2"></i>Frequency</div>
+                                            <div class="claim-info-value fw-bold">@maintenance.Frequency</div>
+                                        </div>
+                                        <div class="claim-info-row">
+                                            <div class="claim-info-label"><i class="fa-solid fa-wallet me-2"></i>Claim Limit</div>
+                                            <div class="claim-info-value fw-bold">@($"{maintenance.ClaimLimit:N2} {claimCurrency}")</div>
+                                        </div>
+                                    </div>
+                                </RadzenColumn>
+                            }
+                        }
+                    </RadzenRow>
+
+                    <!-- Supporting Document -->
+                    <RadzenRow class="mt-3">
+                        <RadzenColumn Size="12">
+                            <div class="form-inline-field">
+                                <label class="required-asterisk">Supporting Document</label>
+                                <RadzenCard Style="padding:1rem; border:1px solid #e0e0e0; border-radius:6px; background:#fafafa;">
+                                    @if (!string.IsNullOrWhiteSpace(tempAttachmentPathUrl) && !isFileMarkedForDelete)
+                                    {
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <a href="@tempAttachmentPathUrl" target="_blank" class="text-decoration-none fw-semibold">
+                                                <i class="bi bi-paperclip me-1"></i>@tempAttachmentFileName
+                                            </a>
+                                            @if (!IsReadonly)
+                                            {
+                                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger"
+                                                              Size="ButtonSize.Small"
+                                                              Click="@(() => ClearExistingFileSelected())" />
+                                            }
+                                        </div>
+                                    }
+                                    else if (!IsReadonly)
+                                    {
+                                        <RadzenUpload @ref="uploadRef" ChooseText="Browse..."
+                                                      Accept=".pdf,.jpg,.png"
+                                                      Multiple="false" Auto="false"
+                                                      Change="@OnFileSelected"
+                                                      Style="margin-top:0.5rem; width:100%;" />
+                                    }
+                                </RadzenCard>
+                            </div>
+                        </RadzenColumn>
+                    </RadzenRow>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        @if (!IsReadonly)
+                        {
+                            <RadzenButton ButtonType="ButtonType.Submit"
+                                          Icon="save"
+                                          Text="@((IsEdit ? "Update" : "Save"))"
+                                          ButtonStyle="ButtonStyle.Success"
+                                          Disabled="@IsSaveDisabled" />
+                        }
+                        <RadzenButton Text="Close"
+                                      ButtonStyle="ButtonStyle.Secondary"
+                                      Variant="Variant.Outlined"
+                                      Click="@CloseClaimDetailsModal" />
+                    </div>
+
+                </RadzenTemplateForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Selected Modal -->
+<div class="modal fade" id="deleteClaimDetailsModal" tabindex="-1" aria-labelledby="deleteClaimDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="deleteClaimDetailsModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="fs-5 mb-3">Are you sure you want to delete the selected claim?</p>
+                <p class="text-danger fw-bold">This will permanently remove the attachments from the library.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-danger px-4" @onclick="deleteSelectedClaimDetails">
+                    <i class="bi bi-trash-fill me-1"></i> Delete
+                </button>
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ApprovalFormVM model { get; set; }
+    [Parameter, EditorRequired] public string spHostUrl { get; set; }
+    [Parameter, EditorRequired] public string accessToken { get; set; }
+
+    [Parameter] public EventCallback<SubClaimDetailsVM> OnClaimChanged { get; set; }
+
+    #region State Variables
+    private bool IsEdit = false;
+    private string FileNameDisplay { get; set; } = string.Empty;
+    private byte[] FileBytes { get; set; }
+    private bool IsSaveDisabled => string.IsNullOrEmpty(FileNameDisplay);
+    private RadzenUpload uploadRef;
+    private bool _isClearing = false;
+    private string tempAttachmentPathUrl;
+    private string tempAttachmentFileName;
+    private byte[] tempAttachmentFileBytes;
+    private bool isFileMarkedForDelete = false;
+    private bool IsReadonly = false;
+    private bool _allowManualTransactionAmount;
+    #endregion
+
+    #region Modal Handlers
+    private async Task openAddClaimDetailsModal()
+    {
+        IsEdit = false;
+
+        if (string.IsNullOrWhiteSpace(model.MainClaimHeaderVM.ClaimCurrency) || string.IsNullOrWhiteSpace(SelectedClaimCategoryText))
+        {
+            await JS.InvokeVoidAsync("showSwalValidationWarning", "Validation Error", "Please select both Claim Currency and Claim Category before adding an item.");
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalLoading", "Loading Expenses", "Please wait while we load the claim details...");
+
+            var newMainClaim = await IClaimProcess.InitExpensesList(spHostUrl, accessToken);
+
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (newMainClaim.HasError)
+            {
+                await JS.InvokeVoidAsync("showSwalError", "Failed to get maintenance list", model.MainClaimHeaderVM.ErrorMessage);
+                return;
+            }
+
+            model.MainClaimHeaderVM.ExpensesList = newMainClaim.ExpensesList;
+            model.MainClaimHeaderVM.ExpensesSubtypeList = newMainClaim.ExpensesSubtypeList;
+            model.MainClaimHeaderVM.ExpensesMaintenanceList = newMainClaim.ExpensesMaintenanceList;
+            model.MainClaimHeaderVM.CurrentClaimDetails = newMainClaim.CurrentClaimDetails;
+
+            tempAttachmentPathUrl = null;
+            tempAttachmentFileName = null;
+            tempAttachmentFileBytes = null;
+            FileNameDisplay = string.Empty;
+            isFileMarkedForDelete = false;
+
+            AllowManualTransactionAmount = model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice == null || model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice == 0;
+            await JS.InvokeVoidAsync("jsInterop.showModal", "#claimDetailsModal");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+
+            string userFriendlyMessage = "Unable to load claim maintenance list.";
+
+            if (ex is TimeoutException)
+                userFriendlyMessage = ConstantHelper.ErrorMessage.TimedOutError;
+            else if (ex is HttpRequestException)
+                userFriendlyMessage = ConstantHelper.ErrorMessage.NetworkError;
+            else if (ex is ApplicationException)
+                userFriendlyMessage = ex.Message;
+            else
+                userFriendlyMessage = ConstantHelper.ErrorMessage.UnexpectedErrorOccur;
+
+            await JS.InvokeVoidAsync("showSwalError", "Error", userFriendlyMessage);
+            LogHelper.LogMessage("[UI] openAddClaimDetailsModal - Error fetching Expenses list: " + ex);
+        }
+    }
+
+    private async Task openEditClaimModal(SubClaimDetailsVM claim)
+    {
+        if (claim == null) return;
+
+        IsReadonly = false;
+        IsEdit = true;
+        isFileMarkedForDelete = false;
+
+        model.MainClaimHeaderVM.CurrentClaimDetails = claim;
+        AllowManualTransactionAmount = model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice == null || model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice == 0;
+
+        tempAttachmentPathUrl = claim.AttachmentPathUrl;
+        tempAttachmentFileName = claim.AttachmentFileName;
+        tempAttachmentFileBytes = null;
+        FileNameDisplay = tempAttachmentFileName ?? string.Empty;
+
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#claimDetailsModal");
+    }
+
+    private async Task openDeleteSelectedModal()
+    {
+        if (!model.MainClaimHeaderVM.SubClaimDetails.Any(x => x.IsSelected))
+        {
+            await JS.InvokeVoidAsync("showSwalWarning", "Selection Required", ConstantHelper.ErrorMessage.RemoveClaimDetailsWarning);
+            return;
+        }
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#deleteClaimDetailsModal");
+    }
+
+    private string SelectedClaimCategoryText
+    {
+        get
+        {
+            if (model.MainClaimHeaderVM?.ClaimCategories == null || string.IsNullOrEmpty(model.MainClaimHeaderVM.SelectedClaimCategorySpId))
+                return string.Empty;
+
+            foreach (var c in model.MainClaimHeaderVM.ClaimCategories)
+            {
+                if (c.Id == model.MainClaimHeaderVM.SelectedClaimCategorySpId)
+                {
+                    model.MainClaimHeaderVM.ClaimCategory = c.Text;
+                    return c.Text;
+                }
+            }
+
+            return string.Empty;
+        }
+    }
+
+    public bool AllowManualTransactionAmount
+    {
+        get => _allowManualTransactionAmount;
+        private set
+        {
+            _allowManualTransactionAmount = value;
+
+            if (value && model.MainClaimHeaderVM?.CurrentClaimDetails != null)
+            {
+                model.MainClaimHeaderVM.CurrentClaimDetails.Quantity = 1;
+            }
+        }
+    }
+
+    #endregion
+
+    #region Filtered Expenses
+    private IEnumerable<DropDownListItem> FilteredExpenses
+    {
+        get
+        {
+            if (model.MainClaimHeaderVM?.ExpensesList == null || model.MainClaimHeaderVM.ExpensesMaintenanceList == null)
+                return Enumerable.Empty<DropDownListItem>();
+
+            var now = DateTime.Now.Date;
+
+            var filtered = model.MainClaimHeaderVM.ExpensesList.Where(dd =>
+            {
+                // Match Claim Category
+                if (!string.IsNullOrWhiteSpace(SelectedClaimCategoryText) && dd.SubText != SelectedClaimCategoryText)
+                    return false;
+
+                var maintenance = model.MainClaimHeaderVM.ExpensesMaintenanceList
+                    .FirstOrDefault(m => m.Expenses == dd.Value);
+
+                if (maintenance == null) return false;
+
+                // Match Claim Entitlement Type
+                if (model.MainClaimHeaderVM.CurrentClaimEntitlementTypeSpId.HasValue &&
+                    maintenance.ClaimEntitlementTypeSpId.HasValue &&
+                    maintenance.ClaimEntitlementTypeSpId.Value != model.MainClaimHeaderVM.CurrentClaimEntitlementTypeSpId.Value)
+                    return false;
+
+                // Check validity
+                if (!IsEmployeeEntitlementCurrentlyValid(maintenance.ClaimEntitlementTypeSpId))
+                    return false;
+
+                return true;
+            });
+
+            return filtered
+                .GroupBy(f => f.Text)
+                .Select(g => g.First())
+                .ToList();
+        }
+    }
+
+    private IEnumerable<DropDownListItem> FilteredSubtypes
+    {
+        get
+        {
+            if (model.MainClaimHeaderVM?.ExpensesSubtypeList == null || model.MainClaimHeaderVM.CurrentClaimDetails == null || model.MainClaimHeaderVM.ExpensesMaintenanceList == null)
+                return Enumerable.Empty<DropDownListItem>();
+
+            var selectedExpenseId = model.MainClaimHeaderVM.CurrentClaimDetails.Expenses;
+            if (string.IsNullOrWhiteSpace(selectedExpenseId)) return Enumerable.Empty<DropDownListItem>();
+
+            var now = DateTime.Now.Date;
+            var expense = model.MainClaimHeaderVM.ExpensesList.FirstOrDefault(e => e.Value == selectedExpenseId);
+            if (expense == null) return Enumerable.Empty<DropDownListItem>();
+
+            var filteredSubtypes = model.MainClaimHeaderVM.ExpensesSubtypeList
+            .Where(st => st.SubText == expense.Text)
+            .Select(st =>
+            {
+                var m = model.MainClaimHeaderVM.ExpensesMaintenanceList.FirstOrDefault(x => x.ID.ToString() == st.Id);
+                if (m == null) return null;
+
+                // Match Claim Entitlement Type
+                if (model.MainClaimHeaderVM.CurrentClaimEntitlementTypeSpId.HasValue &&
+                    m.ClaimEntitlementTypeSpId.HasValue &&
+                    m.ClaimEntitlementTypeSpId.Value != model.MainClaimHeaderVM.CurrentClaimEntitlementTypeSpId.Value)
+                    return null;
+
+                // Check validity
+                if (!IsEmployeeEntitlementCurrentlyValid(m.ClaimEntitlementTypeSpId))
+                    return null;
+
+                return new DropDownListItem
+                {
+                    Text = st.Text,
+                    Value = st.Value
+                };
+            })
+            .Where(st => st != null)
+            .ToList();
+
+            return filteredSubtypes;
+        }
+    }
+
+    private bool IsEmployeeEntitlementCurrentlyValid(int? claimEntitlementSpId)
+    {
+        if (!claimEntitlementSpId.HasValue) return true;
+
+        var now = DateTime.Now.Date;
+
+        if (model.MainClaimHeaderVM.ClaimEntitlementType1SpId.HasValue &&
+            model.MainClaimHeaderVM.ClaimEntitlementType1SpId.Value == claimEntitlementSpId.Value)
+        {
+            if (model.MainClaimHeaderVM.ClaimEntitlementType1StartDate.HasValue && model.MainClaimHeaderVM.ClaimEntitlementType1EndDate.HasValue)
+            {
+                return now >= model.MainClaimHeaderVM.ClaimEntitlementType1StartDate.Value.Date && now <= model.MainClaimHeaderVM.ClaimEntitlementType1EndDate.Value.Date;
+            }
+            return false;
+        }
+
+        if (model.MainClaimHeaderVM.ClaimEntitlementType2SpId.HasValue &&
+            model.MainClaimHeaderVM.ClaimEntitlementType2SpId.Value == claimEntitlementSpId.Value)
+        {
+            if (model.MainClaimHeaderVM.ClaimEntitlementType2StartDate.HasValue && model.MainClaimHeaderVM.ClaimEntitlementType2EndDate.HasValue)
+            {
+                return now >= model.MainClaimHeaderVM.ClaimEntitlementType2StartDate.Value.Date && now <= model.MainClaimHeaderVM.ClaimEntitlementType2EndDate.Value.Date;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    private void RecalculateAmounts(bool raiseStateChanged = true)
+    {
+        if (model.MainClaimHeaderVM?.CurrentClaimDetails == null) return;
+
+        var current = model.MainClaimHeaderVM.CurrentClaimDetails;
+        var qty = current.Quantity ?? 0m;
+
+        var txnCurrency = string.IsNullOrWhiteSpace(current.TransactionCurrency)
+                            ? model.MainClaimHeaderVM.ClaimCurrency
+                            : current.TransactionCurrency;
+        var claimCurrency = model.MainClaimHeaderVM.ClaimCurrency ?? txnCurrency;
+
+        var rateTxnToClaim = GetExchangeRate(txnCurrency, claimCurrency);
+        current.ExchangeRate = Decimal.Round(rateTxnToClaim, 6, MidpointRounding.AwayFromZero);
+
+        if (!AllowManualTransactionAmount)
+        {
+            var rateClaimToTxn = GetExchangeRate(claimCurrency, txnCurrency);
+            rateClaimToTxn = Decimal.Round(rateClaimToTxn, 6, MidpointRounding.AwayFromZero);
+
+            var unitPrice = current.UnitPrice * rateClaimToTxn;
+            var txnAmountOriginal = qty * unitPrice;
+
+            current.TransactionAmount = txnAmountOriginal;
+            current.UnitPriceConverted = unitPrice;
+            current.TransactionAmountConverted = txnAmountOriginal * rateTxnToClaim;
+        }
+        else
+        {
+            var txnAmountOriginal = current.TransactionAmount ?? 0m;
+            current.TransactionAmountConverted = txnAmountOriginal * rateTxnToClaim;
+            current.UnitPriceConverted = 0m;
+        }
+
+        current.SubtotalClaimAmount = current.TransactionAmountConverted ?? 0m;
+        model.MainClaimHeaderVM.TotalClaimAmount = model.MainClaimHeaderVM.SubClaimDetails?.Sum(x => x.SubtotalClaimAmount ?? 0) ?? 0m;
+
+        if (raiseStateChanged) StateHasChanged();
+    }
+    #endregion
+
+    #region OnChange
+    private void OnExpenseChanged(object value)
+    {
+        model.MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype = null;
+        model.MainClaimHeaderVM.CurrentClaimDetails.Quantity = 1;
+        model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice = 0m;
+        model.MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted = 0m;
+
+        model.MainClaimHeaderVM.CurrentClaimDetails.ClaimEntitlementTypeSpId = null;
+        model.MainClaimHeaderVM.CurrentClaimDetails.ClaimLimit = null;
+        model.MainClaimHeaderVM.CurrentClaimDetails.EffectiveStartDate = null;
+        model.MainClaimHeaderVM.CurrentClaimDetails.EffectiveEndDate = null;
+    }
+
+    private async Task OnSubtypeChanged(object value)
+    {
+        var selectedSubtype = value.ToString();
+        if (string.IsNullOrWhiteSpace(selectedSubtype)) return;
+
+        var m = model.MainClaimHeaderVM.ExpensesMaintenanceList.FirstOrDefault(x => x.ExpensesSubtype == selectedSubtype);
+        if (m == null) return;
+
+        if (m.FixedQuantity)
+        {
+            model.MainClaimHeaderVM.CurrentClaimDetails.Quantity = m.FixedQuantityValue.GetValueOrDefault(1);
+        }
+
+        if (m.FixedAmount)
+        {
+            model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice = m.FixedAmountValue.GetValueOrDefault(0m);
+        }
+
+        AllowManualTransactionAmount = model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice == null || model.MainClaimHeaderVM.CurrentClaimDetails.UnitPrice == 0;
+        model.MainClaimHeaderVM.CurrentClaimDetails.ClaimEntitlementTypeSpId = m.ClaimEntitlementTypeSpId;
+        model.MainClaimHeaderVM.CurrentClaimDetails.ClaimLimit = m.ClaimLimit;
+        model.MainClaimHeaderVM.CurrentClaimDetails.EffectiveStartDate = m.EffectiveStartDate;
+        model.MainClaimHeaderVM.CurrentClaimDetails.EffectiveEndDate = m.EffectiveEndDate;
+
+        RecalculateAmounts();
+    }
+
+    private void OnQuantityChanged(decimal? value)
+    {
+        if (!value.HasValue || value.Value < 0) return;
+        model.MainClaimHeaderVM.CurrentClaimDetails.Quantity = value.Value;
+        RecalculateAmounts();
+    }
+
+    private void OnTransactionCurrencyChanged(object value)
+    {
+        var currency = value?.ToString();
+        model.MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency = currency;
+        RecalculateAmounts();
+    }
+
+    private void OnTransactionAmountChanged(decimal? value)
+    {
+        if (!AllowManualTransactionAmount) return;
+        model.MainClaimHeaderVM.CurrentClaimDetails.TransactionAmount = value ?? 0m;
+        RecalculateAmounts();
+    }
+    #endregion
+
+    #region Claim Save/Delete
+    private async Task saveClaimDetails()
+    {
+        var currentClaimDetails = model.MainClaimHeaderVM.CurrentClaimDetails;
+        if (currentClaimDetails == null) return;
+
+        var validationError = GetMissingQuotationFieldsMessage(currentClaimDetails);
+        if (!string.IsNullOrEmpty(validationError))
+        {
+            await JS.InvokeVoidAsync("showSwalValidationWarning", "Validation Error", validationError);
+            return;
+        }
+
+        SubClaimDetailsVM maintenance = null;
+        try{
+
+        if (!string.IsNullOrWhiteSpace(currentClaimDetails.ExpensesSubtype))
+        {
+            maintenance = model.MainClaimHeaderVM.ExpensesMaintenanceList.FirstOrDefault(m => m.ExpensesSubtype == currentClaimDetails.ExpensesSubtype);
+        }
+        else if (!string.IsNullOrWhiteSpace(currentClaimDetails.Expenses))
+        {
+            var expenseText = model.MainClaimHeaderVM.ExpensesList.FirstOrDefault(e => e.Value == currentClaimDetails.Expenses)?.Text;
+            maintenance = model.MainClaimHeaderVM.ExpensesMaintenanceList.FirstOrDefault(m => m.Expenses == expenseText);
+        }
+
+        if (maintenance != null)
+        {
+            var txnDate = currentClaimDetails.TransactionDate.Value.Date;
+            // 1) Effective range
+            if (maintenance.EffectiveStartDate.HasValue && maintenance.EffectiveEndDate.HasValue)
+            {
+                if (txnDate < maintenance.EffectiveStartDate.Value.Date || txnDate > maintenance.EffectiveEndDate.Value.Date)
+                {
+                    await JS.InvokeVoidAsync("showSwalValidationWarning", "Validation Error",
+                        string.Format(ConstantHelper.ErrorMessage.EffectiveDateWarning,
+                            maintenance.EffectiveStartDate.Value.ToString(ConstantHelper.DateFormat.DefaultDateFormat),
+                            maintenance.EffectiveEndDate.Value.ToString(ConstantHelper.DateFormat.DefaultDateFormat)));
+                    return;
+                }
+            }
+
+            // 2) Entitlement
+            if (maintenance.ClaimEntitlementTypeSpId.HasValue)
+            {
+                if (!IsEmployeeEntitlementValidForDate(maintenance.ClaimEntitlementTypeSpId.Value, txnDate))
+                {
+                    await JS.InvokeVoidAsync("showSwalValidationWarning", "Validation Error", ConstantHelper.ErrorMessage.EntitlementWarning);
+                    return;
+                }
+            }
+
+            // 3) Frequency + Limit check
+            if (maintenance.ClaimFrequencyEnum.HasValue)
+            {
+                var frequency = maintenance.ClaimFrequencyEnum.Value;
+                var claimLimit = maintenance.ClaimLimit.Value;
+
+                var existingClaims = model.MainClaimHeaderVM.SubClaimDetails
+                    .Where(c => c.ExpensesSubtype == currentClaimDetails.ExpensesSubtype && c != currentClaimDetails)
+                    .ToList();
+
+                decimal totalAmount = 0;
+                bool exceedsFrequency = false;
+
+                switch (frequency)
+                {
+                    case ClaimFrequency.PerReceipt:
+                        totalAmount = (currentClaimDetails.TransactionAmountConverted ?? 0);
+                        exceedsFrequency = totalAmount > claimLimit;
+                        break;
+
+                    case ClaimFrequency.Daily:
+                        var sameDayClaims = existingClaims
+                            .Where(c => c.TransactionDate.HasValue && c.TransactionDate.Value.Date == txnDate)
+                            .Sum(c => c.TransactionAmountConverted ?? 0);
+
+                        totalAmount = sameDayClaims + (currentClaimDetails.TransactionAmountConverted ?? 0);
+                        exceedsFrequency = totalAmount > claimLimit;
+                        break;
+
+                    case ClaimFrequency.Monthly:
+                        var sameMonthClaims = existingClaims
+                            .Where(c => c.TransactionDate.HasValue &&
+                                        c.TransactionDate.Value.Year == txnDate.Year &&
+                                        c.TransactionDate.Value.Month == txnDate.Month)
+                            .Sum(c => c.TransactionAmountConverted ?? 0);
+
+                        var totalMonth = sameMonthClaims + (currentClaimDetails.TransactionAmountConverted ?? 0);
+                        exceedsFrequency = totalMonth > claimLimit;
+                        break;
+
+                    case ClaimFrequency.Lifetime:
+                        var lifetimeClaims = existingClaims.Sum(c => c.TransactionAmountConverted ?? 0);
+                        totalAmount = lifetimeClaims + (currentClaimDetails.TransactionAmountConverted ?? 0);
+                        exceedsFrequency = totalAmount > claimLimit;
+                        break;
+                }
+
+                if (exceedsFrequency)
+                {
+                    var totalStr = $"<b>{totalAmount:N2} {model.MainClaimHeaderVM.ClaimCurrency}</b>";
+                    var limitStr = $"<b>{claimLimit:N2} {model.MainClaimHeaderVM.ClaimCurrency}</b>";
+                    var warningMsg = string.Format(ConstantHelper.ErrorMessage.ClaimLimitWarning, totalStr, frequency, limitStr);
+
+                    bool proceed = await JS.InvokeAsync<bool>("showSwalConfirm", "Limit Exceeded", warningMsg);
+                    if (!proceed) return;
+                }
+            }
+
+            currentClaimDetails.ClaimEntitlementTypeSpId = maintenance.ClaimEntitlementTypeSpId;
+            currentClaimDetails.ClaimEntitlementType = maintenance.ClaimEntitlementType;
+            currentClaimDetails.ClaimLimit = maintenance.ClaimLimit;
+            currentClaimDetails.EffectiveStartDate = maintenance.EffectiveStartDate;
+            currentClaimDetails.EffectiveEndDate = maintenance.EffectiveEndDate;
+        }
+
+        if (isFileMarkedForDelete)
+        {
+            await IClaimProcess.DeleteClaimAttachment(model.MainClaimHeaderVM, spHostUrl, accessToken);
+            currentClaimDetails.AttachmentPathUrl = null;
+            currentClaimDetails.AttachmentFileName = null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(tempAttachmentFileName) && tempAttachmentFileBytes != null)
+        {
+            currentClaimDetails.AttachmentFileName = tempAttachmentFileName;
+            currentClaimDetails.AttachmentFileBytes = tempAttachmentFileBytes;
+        }
+
+        if (!IsEdit)
+        {
+            model.MainClaimHeaderVM.SubClaimDetails.Add(currentClaimDetails);
+        }
+
+        await JS.InvokeVoidAsync("showSwalLoading", "Saving Claim", "Saving claim details...Please wait.");
+        var updatedModel = await IClaimProcess.SaveClaimDetails(model.MainClaimHeaderVM, spHostUrl, accessToken);
+        if (updatedModel.HasError)
+        {
+            await JS.InvokeVoidAsync("showSwalError", "Save Failed", updatedModel.ErrorMessage ?? ConstantHelper.ErrorMessage.SaveFailed);
+            LogHelper.LogMessage("[UI] saveClaimDetails - API returned error: " + updatedModel.ErrorMessage);
+            return;
+        }
+        await JS.InvokeVoidAsync("showSwalSuccess", ConstantHelper.SuccessMessage.AddClaimPopup);
+        SubClaimDetailsVM updatedSubClaim = updatedModel.SubClaimDetails.FirstOrDefault(q => q.TempId == currentClaimDetails.TempId);
+
+        // Update the same object in UI list
+        if (updatedSubClaim != null)
+        {
+            currentClaimDetails.AttachmentPathUrl = updatedSubClaim.AttachmentPathUrl;
+            currentClaimDetails.AttachmentFileName = updatedSubClaim.AttachmentFileName;
+            currentClaimDetails.AttachmentFileBytes = updatedSubClaim.AttachmentFileBytes;
+
+            var rate = GetExchangeRate(updatedSubClaim.TransactionCurrency, model.MainClaimHeaderVM.ClaimCurrency);
+            currentClaimDetails.ExchangeRate = Decimal.Round(rate, 6, MidpointRounding.AwayFromZero);
+            currentClaimDetails.ClaimCurrency = model.MainClaimHeaderVM.ClaimCurrency;
+            currentClaimDetails.ClaimCategory = model.MainClaimHeaderVM.ClaimCategory;
+            currentClaimDetails.SubtotalClaimAmount = updatedSubClaim.TransactionAmountConverted;
+        }
+        else
+        {
+            model.MainClaimHeaderVM.CurrentClaimDetails = updatedSubClaim;
+        }
+
+        model.MainClaimHeaderVM.TotalClaimAmount = TotalClaimAmount;
+        tempAttachmentPathUrl = currentClaimDetails.AttachmentPathUrl;
+        tempAttachmentFileName = currentClaimDetails.AttachmentFileName;
+        tempAttachmentFileBytes = null;
+        FileNameDisplay = string.Empty;
+        isFileMarkedForDelete = false;
+
+        await OnClaimChanged.InvokeAsync(model.MainClaimHeaderVM.CurrentClaimDetails);
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#claimDetailsModal");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+
+            string userFriendlyMessage;
+            if (ex is TimeoutException)
+                userFriendlyMessage = ConstantHelper.ErrorMessage.TimedOutError;
+            else if (ex is HttpRequestException)
+                userFriendlyMessage = ConstantHelper.ErrorMessage.NetworkError;
+            else if (ex is ApplicationException)
+                userFriendlyMessage = ex.Message;
+            else
+                userFriendlyMessage = ConstantHelper.ErrorMessage.UnexpectedErrorOccur;
+
+            await JS.InvokeVoidAsync("showSwalError", "Failed to Save", userFriendlyMessage);
+            LogHelper.LogMessage("[UI] saveClaimDetails - Error: " + ex);
+            StateHasChanged();
+        }
+    }
+
+    private bool IsEmployeeEntitlementValidForDate(int entitlementSpId, DateTime txnDate)
+    {
+        txnDate = txnDate.Date;
+
+        if (model.MainClaimHeaderVM.ClaimEntitlementType1SpId.HasValue && model.MainClaimHeaderVM.ClaimEntitlementType1SpId.Value == entitlementSpId)
+        {
+            if (model.MainClaimHeaderVM.ClaimEntitlementType1StartDate.HasValue && model.MainClaimHeaderVM.ClaimEntitlementType1EndDate.HasValue)
+            {
+                return txnDate >= model.MainClaimHeaderVM.ClaimEntitlementType1StartDate.Value.Date && txnDate <= model.MainClaimHeaderVM.ClaimEntitlementType1EndDate.Value.Date;
+            }
+            return false;
+        }
+        if (model.MainClaimHeaderVM.ClaimEntitlementType2SpId.HasValue && model.MainClaimHeaderVM.ClaimEntitlementType2SpId.Value == entitlementSpId)
+        {
+            if (model.MainClaimHeaderVM.ClaimEntitlementType2StartDate.HasValue && model.MainClaimHeaderVM.ClaimEntitlementType2EndDate.HasValue)
+            {
+                return txnDate >= model.MainClaimHeaderVM.ClaimEntitlementType2StartDate.Value.Date && txnDate <= model.MainClaimHeaderVM.ClaimEntitlementType2EndDate.Value.Date;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    private async Task deleteSelectedClaimDetails()
+    {
+        var selectedItems = model.MainClaimHeaderVM.SubClaimDetails.Where(x => x.IsSelected).ToList();
+
+        foreach (var item in selectedItems)
+        {
+            if (!string.IsNullOrWhiteSpace(item.AttachmentPathUrl))
+            {
+                try
+                {
+                    model.MainClaimHeaderVM.CurrentClaimDetails = item;
+                    var success = await IClaimProcess.DeleteClaimDetails(model.MainClaimHeaderVM, spHostUrl, accessToken);
+
+                    if (!success)
+                    {
+                        await JS.InvokeVoidAsync("showSwalWarning", "Delete Failed", $"Unable to delete {item.AttachmentFileName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogHelper.LogMessage("Error deleting attachment: " + ex);
+                    await JS.InvokeVoidAsync("showSwalError", "Delete Error", $"Failed to delete {item.AttachmentFileName}");
+                }
+            }
+
+            model.MainClaimHeaderVM.SubClaimDetails.Remove(item);
+        }
+
+        await OnClaimChanged.InvokeAsync(model.MainClaimHeaderVM.CurrentClaimDetails);
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#deleteClaimDetailsModal");
+    }
+
+    private async Task CloseClaimDetailsModal()
+    {
+        isFileMarkedForDelete = false;
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#claimDetailsModal");
+    }
+
+    #endregion
+
+    #region File Handling
+    private async Task OnFileSelected(UploadChangeEventArgs args)
+    {
+        if (_isClearing) return;
+
+        var file = args.Files.FirstOrDefault();
+        if (file != null)
+        {
+            string[] allowedExtensions = { ".pdf", ".jpg", ".png" };
+
+            if (!allowedExtensions.Any(ext => file.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+            {
+                await JS.InvokeVoidAsync("showSwalError", "Invalid File", ConstantHelper.ErrorMessage.InvalidFileFormat);
+                ClearFileSelection();
+                return;
+            }
+
+            try
+            {
+                using var stream = file.OpenReadStream(10 * 1024 * 1024); // 10 MB
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                FileBytes = ms.ToArray();
+
+                FileNameDisplay = file.Name;
+                tempAttachmentFileName = file.Name;
+                tempAttachmentFileBytes = FileBytes;
+            }
+            catch (IOException)
+            {
+                await JS.InvokeVoidAsync("showSwalWarning", "File Too Large", ConstantHelper.ErrorMessage.FileSizeLimitWarning);
+                ClearFileSelection();
+            }
+        }
+        else
+        {
+            ClearFileSelection();
+        }
+    }
+
+    private void ClearFileSelection()
+    {
+        _isClearing = true;
+
+        FileNameDisplay = string.Empty;
+        FileBytes = null;
+
+        var currentClaim = model.MainClaimHeaderVM.CurrentClaimDetails;
+        if (currentClaim != null)
+        {
+            currentClaim.AttachmentFileName = null;
+            currentClaim.AttachmentFileBytes = null;
+            currentClaim.AttachmentPathUrl = null;
+        }
+
+        uploadRef?.ClearFiles();
+
+        _isClearing = false;
+        StateHasChanged();
+    }
+
+    private void ClearExistingFileSelected()
+    {
+        isFileMarkedForDelete = true;
+        tempAttachmentPathUrl = null;
+        tempAttachmentFileName = null;
+        FileNameDisplay = string.Empty;
+        FileBytes = null;
+        StateHasChanged();
+    }
+    #endregion
+
+    #region Lifecycle
+    private void OnClaimCurrencyChanged(object value)
+    {
+        var selectedCurrency = value?.ToString();
+        model.MainClaimHeaderVM.ClaimCurrency = selectedCurrency;
+
+        if (model.MainClaimHeaderVM.SubClaimDetails != null)
+        {
+            foreach (var claim in model.MainClaimHeaderVM.SubClaimDetails)
+            {
+                var exchangeRate = GetExchangeRate(claim.TransactionCurrency, selectedCurrency);
+                claim.ExchangeRate = Decimal.Round(exchangeRate, 6, MidpointRounding.AwayFromZero);
+
+                claim.SubtotalClaimAmount = Decimal.Round(
+                    claim.TransactionAmount.GetValueOrDefault() * claim.ExchangeRate.GetValueOrDefault(),
+                    2
+                );
+            }
+        }
+
+        StateHasChanged();
+    }
+    #endregion
+
+    #region Validation & Helpers
+    private string BuildTravelRequestUrl(string travelRequestHeaderId)
+    {
+        var baseUrl = JSONAppSettings.TravelAppUrl?.TrimEnd('/');
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            return NavigationHelper.BuildUrl($"/DisplayForm", (ConstantHelper.ParameterQuery.RequestId, travelRequestHeaderId));
+        }
+
+        var url = $"{baseUrl}/DisplayForm";
+        return NavigationHelper.BuildUrl(url, (ConstantHelper.ParameterQuery.RequestId, travelRequestHeaderId));
+    }
+
+    private bool IsTravelCategory(string selectedCategoryId)
+    {
+        var category = model.MainClaimHeaderVM.ClaimCategories
+            ?.FirstOrDefault(c => c.Id == selectedCategoryId);
+
+        if (category == null) return false;
+
+        return category.Text == "Travel HR" || category.Text == "Travel Finance";
+    }
+
+    private void SetSelectedCategoryText()
+    {
+        var category = model.MainClaimHeaderVM.ClaimCategories?
+            .FirstOrDefault(c => c.Id == model.MainClaimHeaderVM.SelectedClaimCategorySpId);
+
+        if (category != null)
+        {
+            model.MainClaimHeaderVM.ClaimCategory = category.Text;
+        }
+    }
+
+    private bool DisableClaimInfo => model.MainClaimHeaderVM?.SubClaimDetails != null
+                                 && model.MainClaimHeaderVM.SubClaimDetails.Any();
+
+    public string GetMissingQuotationFieldsMessage(SubClaimDetailsVM claim)
+    {
+        var missingFields = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(claim.Expenses)) missingFields.Add("Expenses");
+        if (string.IsNullOrWhiteSpace(claim.ExpensesSubtype)) missingFields.Add("Expense Subtype");
+        if (claim.TransactionDate == null || claim.TransactionDate <= SqlDateTime.MinValue.Value) missingFields.Add("Transaction Date");
+        if (string.IsNullOrWhiteSpace(claim.TransactionCurrency)) missingFields.Add("Transaction Currency");
+        if (claim.Quantity <= 0) missingFields.Add("Quantity (must be greater than 0)");
+        if (claim.UnitPrice <= 0 && !AllowManualTransactionAmount) missingFields.Add("Unit Price (must be greater than 0)");
+        if (string.IsNullOrWhiteSpace(claim.Description)) missingFields.Add("Description");
+
+        if (missingFields.Any())
+        {
+            return "<div style='text-align:left'><ul><li>" + string.Join("</li><li>", missingFields) + "</li></ul></div>";
+        }
+
+        return string.Empty;
+    }
+
+    private decimal GetExchangeRate(string baseCurrency, string targetCurrency)
+    {
+        if (string.IsNullOrWhiteSpace(baseCurrency) || string.IsNullOrWhiteSpace(targetCurrency))
+            return 1.000000m;
+
+        var rate = model.MainClaimHeaderVM.CurrencyExchangeRates?
+            .FirstOrDefault(r =>
+                string.Equals(r.BaseCurrency, baseCurrency, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(r.TargetCurrency, targetCurrency, StringComparison.OrdinalIgnoreCase));
+
+        return rate?.Rate ?? 1.000000m; // default 1 if not found
+    }
+
+    private decimal TotalClaimAmount => model.MainClaimHeaderVM.SubClaimDetails?.Sum(x => x.SubtotalClaimAmount ?? 0) ?? 0m;
+    #endregion
+}

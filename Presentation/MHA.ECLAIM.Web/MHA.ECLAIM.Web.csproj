@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ElmahCore" Version="2.1.2" />
+    <PackageReference Include="ElmahCore.Sql" Version="2.1.2" />
+    <PackageReference Include="PnP.Core" Version="1.15.0" />
+    <PackageReference Include="PnP.Core.Auth" Version="1.15.0" />
+    <PackageReference Include="PnP.Framework" Version="1.18.0" />
+    <PackageReference Include="Radzen.Blazor" Version="7.3.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Business\MHA.ECLAIM.Business\MHA.ECLAIM.Business.csproj" />
+    <ProjectReference Include="..\..\Shared\MHA.ECLAIM.Entities\MHA.ECLAIM.Entities.csproj" />
+    <ProjectReference Include="..\..\Shared\MHA.ECLAIM.Framework\MHA.ECLAIM.Framework.csproj" />
+    <ProjectReference Include="..\MHA.ECLAIM.Process\MHA.ECLAIM.Process.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MHA.Framework.Core.SP">
+      <HintPath>..\..\Library\MHA.Framework.Core.SP\MHA.Framework.Core.SP.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\Certs\" />
+    <Folder Include="wwwroot\images\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+﻿@page "/Home"
+@inject TokenHelper TokenHelper
+@inject IHomeProcess HomeProcess
+@attribute [Authorize]
+
+<PageTitle>Home</PageTitle>
+<MHA.ECLAIM.Web.Components.PartialComponents.MyPendingTask />
+<br />
+<MHA.ECLAIM.Web.Components.PartialComponents.MyActiveRequest />
+
+@code{
+    private string accessToken = string.Empty;
+    private string appAccessToken = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+        StateHasChanged();
+    }
+}

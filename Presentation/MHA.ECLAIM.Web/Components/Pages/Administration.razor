@@ -1,0 +1,124 @@
+﻿@page "/administration"
+@attribute [Authorize]
+@inject TokenHelper TokenHelper
+@inject LogHelper LogHelper
+@inject IAdministrationProcess administrationProcess
+
+<PageTitle>Administration</PageTitle>
+<h2 class="page-title">Administration</h2>
+<div class="page-title-underline"></div>
+
+<div class="p-4">
+    @if (vm.IsAuthorized)
+    {
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-6">
+
+                <!-- Project Settings -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <strong>Project Settings</strong>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@vm.ReportURL" target="_blank" class="list-group-item list-group-item-action">Report</a>
+                    </div>
+                </div>
+
+                <!-- Running Number Settings -->
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <strong>Running Number Settings</strong>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@vm.RunningNumberFormatURL" target="_blank" class="list-group-item list-group-item-action">Running Number Format</a>
+                        <a href="@vm.RunningNumberURL" target="_blank" class="list-group-item list-group-item-action">Running Number</a>
+                    </div>
+                </div>
+
+                <!-- Master Data List -->
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <strong>Master Data List</strong>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@vm.EmployeeURL" target="_blank" class="list-group-item list-group-item-action">Employee</a>
+                        <a href="@vm.CountriesURL" target="_blank" class="list-group-item list-group-item-action">Countries</a>
+                        <a href="@vm.CostCenterURL" target="_blank" class="list-group-item list-group-item-action">Cost Center</a>
+                        <a href="@vm.DepartmentURL" target="_blank" class="list-group-item list-group-item-action">Department</a>
+                        <a href="@vm.CompanyURL" target="_blank" class="list-group-item list-group-item-action">Company</a>
+                        <a href="@vm.PositionURL" target="_blank" class="list-group-item list-group-item-action">Position</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-6">
+
+                <!-- Claim Settings -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <strong>Claim Settings</strong>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@vm.ClaimEntitlementTypeURL" target="_blank" class="list-group-item list-group-item-action">Claim Entitlement Type</a>
+                        <a href="@vm.ClaimItemApproverURL" target="_blank" class="list-group-item list-group-item-action">Claim Item Approver</a>
+                        <a href="@vm.ClaimMasterApproverURL" target="_blank" class="list-group-item list-group-item-action">Claim Master Approver</a>
+                    </div>
+                </div>
+
+                <!-- Finance -->
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <strong>Finance</strong>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@vm.CurrencyURL" target="_blank" class="list-group-item list-group-item-action">Currency</a>
+                        <a href="@vm.TaxCodeURL" target="_blank" class="list-group-item list-group-item-action">Tax Code</a>
+                        <a href="@vm.GLCodeURL" target="_blank" class="list-group-item list-group-item-action">GL Code</a>
+                    </div>
+                </div>
+
+                <!-- Categories Settings -->
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <strong>Categories Settings</strong>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="@vm.CategoryURL" target="_blank" class="list-group-item list-group-item-action">Category</a>
+                        <a href="@vm.SubCategoryURL" target="_blank" class="list-group-item list-group-item-action">Sub Category</a>
+                        <a href="@vm.FrequencyURL" target="_blank" class="list-group-item list-group-item-action">Frequency</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <AccessDenied />
+    }
+</div>
+
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+
+    ViewModelAdministrationListing vm = new ViewModelAdministrationListing();
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+
+        try
+        {
+            vm = await administrationProcess.InitAdministrationListing(spHostUrl, accessToken);
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("AdministrationBL - InitAdministrationListing Error:" + ex.ToString());
+        }
+    }
+}

@@ -1,0 +1,254 @@
+﻿@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject NavigationHelper NavigationHelper
+@inject TokenHelper TokenHelper
+@inject IWorkflowProcess WorkflowProcess
+@inject IJSRuntime JS
+@inject IOptions<JSONAppSettings> appSettings
+
+<PageTitle>New Delegate</PageTitle>
+
+@if (showErrorAlert && model.HasError && !string.IsNullOrEmpty(model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @((MarkupString)model.ErrorMessage)
+        <button type="button" class="btn-close" aria-label="Close" @onclick="DismissErrorAlert"></button>
+    </div>
+}
+
+<EditForm Model="model" class="needs-validation" novalidate>
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <!-- Delegation From -->
+    <div class="mb-3 row align-items-center">
+        <label class="col-md-3 col-form-label fw-semibold required-asterisk">
+            Delegation From
+        </label>
+        <div class="col-md-9">
+            @if (model.isAdmin)
+            {
+                <PeoplePickerComponent SpHostUrl="@spHostUrl"
+                                       AccessToken="@accessToken"
+                                       @bind-SelectedUser="@model.txtFromUser"
+                                       OnUserSelected="OnDelegateFromUserSelected" />
+            }
+            else
+            {
+                <InputText class="form-control-plaintext bg-light border rounded px-2 py-1"
+                           @bind-Value="model.curUserName" readonly />
+            }
+        </div>
+    </div>
+
+    <!-- Delegation To -->
+    <div class="mb-3 row align-items-center">
+        <label class="col-md-3 col-form-label fw-semibold required-asterisk">
+            Delegation To
+        </label>
+        <div class="col-md-9">
+            <PeoplePickerComponent SpHostUrl="@spHostUrl"
+                                   AccessToken="@accessToken"
+                                   @bind-SelectedUser="@model.txtTouser"
+                                   OnUserSelected="OnDelegateToUserSelected" />
+        </div>
+    </div>
+
+    <!-- Dates -->
+    <div class="mb-3 row align-items-center">
+        <label class="col-md-3 col-form-label fw-semibold required-asterisk">Delegation Period</label>
+        <div class="col-md-9 d-flex align-items-center gap-2">
+            <RadzenDatePicker style="flex:1"
+                              @bind-Value="model.dateFrom"
+                              min="@DateTime.Today"
+                              Placeholder="Start Date"
+                              DateFormat="@ConstantHelper.DateFormat.DefaultDateFormat" />
+            <span class="fw-semibold text-muted">to</span>
+            <RadzenDatePicker style="flex:1"
+                              @bind-Value="model.dateTo"
+                              min="@model.dateFrom"
+                              Placeholder="End Date"
+                              DateFormat="@ConstantHelper.DateFormat.DefaultDateFormat" />
+        </div>
+    </div>
+
+    <!-- Validation -->
+    <div class="row">
+        <div class="offset-md-3 col-md-9">
+            <ValidationMessage For="@(() => model.dateFrom)" />
+            <ValidationMessage For="@(() => model.dateTo)" />
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary px-4" @onclick="OnSubmit">Submit</button>
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+    </div>
+</EditForm>
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken { get; set; }
+    [Parameter, EditorRequired]
+    public ViewModelNewDelegate model { get; set; } = new();
+
+    [Parameter] public EventCallback OnCreated { get; set; }
+
+    private bool showErrorAlert = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+        // await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        model = await WorkflowProcess.InitNewDelegate(spHostUrl, accessToken);
+    }
+
+    private async Task OnDelegateFromUserSelected(PeoplePickerUser user)
+    {
+        model.txtFromUser = user;
+    }
+
+    private async Task OnDelegateToUserSelected(PeoplePickerUser user)
+    {
+        model.txtTouser = user;
+    }
+
+    private void Close()
+    {
+        Navigation.NavigateTo(NavigationHelper.BuildUrl("/Delegation"));
+    }
+
+    private bool ValidateAndHandleErrors()
+    {
+        var validationContext = new ValidationContext(model);
+        var validationResults = new List<ValidationResult>();
+
+        model.ddlProcessTemplate = "1";
+
+        bool isValid = Validator.TryValidateObject(model, validationContext, validationResults, true);
+
+        // Custom validation
+        if (model.isAdmin)
+        {
+            if (model.txtFromUser == null)
+            {
+                validationResults.Add(new ValidationResult("Please select a Delegator (Delegation From)."));
+                isValid = false;
+            }
+
+            if (model.txtFromUser != null && model.txtTouser != null &&
+                model.txtTouser.Login == model.txtFromUser.Login)
+            {
+                validationResults.Add(new ValidationResult("Delegator and Delegatee cannot be the same person."));
+                isValid = false;
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(model.curUserName) && model.txtTouser != null &&
+                model.txtTouser.Name == model.curUserName)
+            {
+                validationResults.Add(new ValidationResult("Delegator and Delegatee cannot be the same person."));
+                isValid = false;
+            }
+        }
+
+        if (model.dateFrom > model.dateTo)
+        {
+            validationResults.Add(new ValidationResult("Start Date cannot be after End Date."));
+            isValid = false;
+        }
+
+        if (model.dateFrom <= DateTime.MinValue || model.dateTo <= DateTime.MinValue)
+        {
+            validationResults.Add(new ValidationResult("Please select valid dates."));
+            isValid = false;
+        }
+
+        if (validationResults.Any())
+        {
+            model.HasError = true;
+            model.ErrorMessage = string.Join("<br/><br/>", validationResults.Select(r => r.ErrorMessage));
+            showErrorAlert = true;
+            return false;
+        }
+
+        model.HasError = false;
+        model.ErrorMessage = string.Empty;
+        return true;
+    }
+
+    private async Task OnSubmit()
+    {
+        if (!ValidateAndHandleErrors()) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalLoading", "Submitting Delegation", "Please wait while we are submitting your delegation...");
+
+            string errorMessage = await WorkflowProcess.SetDelegation(model, spHostUrl, accessToken);
+
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (string.IsNullOrWhiteSpace(errorMessage))
+            {
+                await JS.InvokeVoidAsync("Swal.fire", new
+                {
+                    title = "Success",
+                    text = "Delegation submitted successfully",
+                    icon = "success",
+                    confirmButtonText = "OK"
+                });
+                await OnCreated.InvokeAsync();
+
+                await JS.InvokeVoidAsync("jsInterop.hideModal", "#newDelegationModal");
+                await ResetForm();
+            }
+            else
+            {
+                model.HasError = true;
+                model.ErrorMessage = errorMessage;
+                showErrorAlert = true;
+
+                await JS.InvokeVoidAsync("showSwalError", errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+            await JS.InvokeVoidAsync("showSwalError", "Failed to submit delegation. " + ex.Message);
+        }
+    }
+
+    private void DismissErrorAlert()
+    {
+        showErrorAlert = false;
+        model.HasError = false;
+    }
+
+    private async Task ResetForm()
+    {
+        // re-initialize the ViewModel
+        model = await WorkflowProcess.InitNewDelegate(spHostUrl, accessToken);
+
+        showErrorAlert = false;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,6 @@
+@MHA.ECLAIM.WebAPI_HostAddress = http://localhost:5202
+
+GET {{MHA.ECLAIM.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

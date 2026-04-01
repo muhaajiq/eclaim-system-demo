@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.17" />
+    <PackageReference Include="RestSharp" Version="112.1.0" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="8.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\MHA.ECLAIM.Entities\MHA.ECLAIM.Entities.csproj" />
+    <ProjectReference Include="..\..\Shared\MHA.ECLAIM.Framework\MHA.ECLAIM.Framework.csproj" />
+  </ItemGroup>
+
+</Project>

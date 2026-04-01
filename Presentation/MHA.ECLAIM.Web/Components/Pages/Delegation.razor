@@ -1,0 +1,276 @@
+﻿@page "/Delegation"
+@attribute [Authorize]
+@inject IJSRuntime JS
+@inject IWorkflowProcess WorkflowProcess
+@inject NavigationManager Navigation
+@inject NavigationHelper NavigationHelper
+@inject TokenHelper TokenHelper
+@inject LogHelper LogHelper
+
+<PageTitle>Delegations</PageTitle>
+
+<h2 class="page-title">Delegations</h2>
+<div class="page-title-underline"></div>
+
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDelegationModal">
+        New Delegation
+    </button>
+</div>
+
+<div id="divDelegate">
+    <table class="table table-bordered table-hover">
+        <thead class="table-secondary text-center">
+            <tr>
+                <th>Action</th>
+                <th>Delegation From</th>
+                <th>Delegation To</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+               
+            </tr>
+        </thead>
+       <tbody>
+    @if (model.HasItem)
+    {
+        foreach (var item in PagedDelegations)  
+        {
+            <tr class="text-center">
+                <td class="text-center align-middle">
+                    @if (item.IsAbleToRemove)
+                    {
+                        <button class="btn btn-link text-dark p-0"
+                                @onclick="() => openRemoveModel(item.DelegationID)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    }
+                </td>
+             
+                <td>@item.DelegationFromFriendlyName</td>
+                <td>@item.DelegationToFriendlyName</td>
+                <td>@DateTimeHelper.ConvertToLocalDateTime(item.DelegationStartDate).ToString(model.DateFormat)</td>
+                <td>@DateTimeHelper.ConvertToLocalDateTime(item.DelegationEndDate).ToString(model.DateFormat)</td>
+            </tr>
+        }
+    }
+</tbody>
+
+    </table>
+    @if (!model.HasItem)
+    {
+        <label>You do not have any delegations.</label>
+    }
+</div>
+
+@if (model?.DelegationList != null && totalPages > 1)
+{
+    <nav>
+        <ul class="pagination justify-content-center">
+
+            <!-- First -->
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a href="javascript:void(0);" class="page-link" @onclick="() => GoToPage(1)">First</a>
+            </li>
+
+            <!-- Previous -->
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a href="javascript:void(0);" class="page-link" @onclick="() => GoToPage(currentPage - 1)">Previous</a>
+            </li>
+
+            <!-- Page numbers -->
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                var pageNumber = p;
+                <li class="page-item @(p == currentPage ? "active" : "")">
+                    <a href="javascript:void(0);" class="page-link" @onclick="() => GoToPage(pageNumber)">@p</a>
+                </li>
+            }
+
+            <!-- Next -->
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a href="javascript:void(0);" class="page-link" @onclick="() => GoToPage(currentPage + 1)">Next</a>
+            </li>
+
+            <!-- Last -->
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a href="javascript:void(0);" class="page-link" @onclick="() => GoToPage(totalPages)">Last</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- Remove Delegation Modal -->
+<div class="modal fade" id="removeModal" tabindex="-1" aria-labelledby="removeDelegationLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+
+            <!-- Header -->
+            <div class="modal-header bg-danger text-white">
+                <h3 class="modal-title fw-bold text-white">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Removal
+                </h3>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body px-4 py-3">
+                <div class="text-center">
+                    <p class="mb-3 fs-5">
+                        Are you sure you want to <span class="fw-semibold text-danger">remove</span> this delegation?
+                    </p>
+                    <p class="text-secondary fw-bold small mb-0">
+                        Once removed, the delegatee will no longer be able to view or act on the delegated tasks.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer justify-content-center">
+                <button type="button"
+                        class="btn btn-danger px-4"
+                        @onclick="() => removeDelegate(SelectedID)">
+                    <i class="bi bi-check-circle me-1"></i> Confirm
+                </button>
+                <button type="button"
+                        class="btn btn-outline-secondary px-4"
+                        data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New delegation modal -->
+<div class="modal fade" id="newDelegationModal" tabindex="-1" aria-labelledby="newDelegationLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <!-- Header -->
+            <div class="modal-header bg-light border-bottom">
+                <h4 class="modal-title fw-bold text-primary">
+                    <i class="bi bi-person-plus-fill me-2"></i> New Delegation
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <NewDelegate OnCreated="HandleNewDelegateCreated" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+
+    public ViewModelMyDelegate model = new();
+    public int SelectedID { get; set; }
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages => (int)Math.Ceiling((double)(model.DelegationList?.Count ?? 0) / pageSize);
+
+    private IEnumerable<DelegationObject> PagedDelegations =>
+       (model?.DelegationList ?? Enumerable.Empty<DelegationObject>())
+           .Skip((currentPage - 1) * pageSize)
+           .Take(pageSize);
+
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    //InitMyDelegate
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalGeneralLoading", "Loading Delegation", "Please wait while we load your delegation...");
+
+            model = await WorkflowProcess.InitMyDelegate(spHostUrl, accessToken);
+
+            currentPage = 1;
+
+            await JS.InvokeVoidAsync("Swal.close");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+
+            LogHelper.LogMessage("Delegation - Error: " + ex.ToString());
+
+            await JS.InvokeVoidAsync("showSwalError", "Failed to load data. Please try again later.");
+        }
+    }
+
+    private async Task removeDelegate(int delegationID)
+    {
+        try
+        {
+            await WorkflowProcess.DeleteDelegation(delegationID, spHostUrl, accessToken);
+
+            await closeRemoveModel();
+
+            await ShowSucessMessage();
+            await LoadData();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("RemoveDelegate - removeDelegate Error: " + ex.ToString());
+        }
+    }
+
+    private async Task ShowSucessMessage()
+    {
+        await JS.InvokeVoidAsync("Swal.fire", new
+        {
+            title = "Success",
+            text = $"You have successfully remove the delegatee!",
+            icon = "success",
+            confirmButtonText = "OK",
+            customClass = new
+            {
+                title = "swal-title-custom",
+                text = "swal-text-custom"
+            }
+        });
+    }
+
+    private async Task openRemoveModel(int delegationID)
+    {
+        SelectedID = delegationID;
+        await JS.InvokeVoidAsync("jsInterop.showModal", "#removeModal");
+    }
+
+    private async Task closeRemoveModel()
+    {
+        await JS.InvokeVoidAsync("jsInterop.hideModal", "#removeModal");
+    }
+
+    private async Task HandleNewDelegateCreated()
+    {
+        await LoadData();
+        StateHasChanged();
+    }
+}

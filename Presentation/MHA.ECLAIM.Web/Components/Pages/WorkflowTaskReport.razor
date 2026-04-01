@@ -1,0 +1,549 @@
+﻿@page "/WorkflowReport"
+@attribute [Authorize]
+@inject TokenHelper TokenHelper
+@inject LogHelper LogHelper
+@inject ProjectHelper ProjectHelper
+@inject NavigationHelper NavigationHelper
+@* @inject WorkflowBL workflowBL *@
+@inject IJSRuntime JS
+@inject IOptions<JSONAppSettings> appSettings
+@inject IWorkflowProcess workflowProcess
+
+<h3 class="mb-4">Workflow Tasks Report</h3>
+
+
+@if (vm.IsAdmin == true)
+{
+    <div class="container-fluid">
+
+        <!-- 🔹 Workflow Start Date -->
+        <div class="row mb-4">
+            <div class="col-md-6 position-relative">
+                <RadzenLabel Text="Workflow Start" class="form-label fw-bold mb-1" />
+                <input type="text"
+                       class="form-control text-black bg-white "
+                       readonly
+                       placeholder="Select workflow start range"
+                       value="@WorkflowStartDisplay"
+                       @onclick="() => showWorkflowStartPicker = !showWorkflowStartPicker" />
+
+                @if (showWorkflowStartPicker)
+                {
+                    <div class="border rounded p-3 bg-white shadow position-absolute"
+                         style="z-index:100; width:100%; top:110%; left:0;">
+                        <div class="row g-2">
+                            <div class="col">
+                                <label class="form-label mb-1">From</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.WorkflowStartedFrom"
+                                                  Name="WorkflowStartedFrom"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Max="@vm.taskSearchModel.WorkflowStartedTo"
+                                                  Style="width:100%;" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1">To</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.WorkflowStartedTo"
+                                                  Name="WorkflowStartedTo"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Min="@vm.taskSearchModel.WorkflowStartedFrom"
+                                                  Style="width:100%;" />
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-2">
+                            <button class="btn btn-sm btn-secondary" @onclick="ClearWorkflowStart">Clear</button>
+                            <button class="btn btn-sm btn-primary"
+                                    @onclick="ApplyWorkflowStart"
+                                    disabled="@((vm.taskSearchModel.WorkflowStartedTo.HasValue && !vm.taskSearchModel.WorkflowStartedFrom.HasValue)
+                                                                                             || (!vm.taskSearchModel.WorkflowStartedTo.HasValue && vm.taskSearchModel.WorkflowStartedFrom.HasValue))">
+                        Apply
+                    </button>
+
+                        </div>
+                    </div>
+                        }
+            </div>
+
+            <div class="col-md-6 position-relative">
+                <RadzenLabel Text="Workflow Completed" class="form-label fw-bold mb-1" />
+                <input type="text"
+                       class="form-control text-black bg-white"
+                       readonly
+                       placeholder="Select workflow completed range"
+                       value="@WorkflowCompletedDisplay"
+                       @onclick="() => showWorkflowCompletedPicker = !showWorkflowCompletedPicker" />
+
+                @if (showWorkflowCompletedPicker)
+                {
+                    <div class="border rounded p-3 bg-white shadow position-absolute"
+                         style="z-index:100; width:100%; top:110%; left:0;">
+                        <div class="row g-2">
+                            <div class="col">
+                                <label class="form-label mb-1">From</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.WorkflowCompletedFrom"
+                                                  Name="WorkflowCompletedFrom"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Max="@vm.taskSearchModel.WorkflowCompletedTo"
+                                                  Style="width:100%;" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1">To</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.WorkflowCompletedTo"
+                                                  Name="WorkflowCompletedTo"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Min="@vm.taskSearchModel.WorkflowCompletedFrom"
+                                                  Style="width:100%;" />
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-2">
+                            <button class="btn btn-sm btn-secondary" @onclick="ClearWorkflowCompleted">Clear</button>
+                            <button class="btn btn-sm btn-primary" @onclick="ApplyWorkflowCompleted"
+                                    disabled="@((vm.taskSearchModel.WorkflowCompletedTo.HasValue && !vm.taskSearchModel.WorkflowCompletedFrom.HasValue)
+                                                                        || (!vm.taskSearchModel.WorkflowCompletedTo.HasValue && vm.taskSearchModel.WorkflowCompletedFrom.HasValue))">
+                        Apply
+                    </button>
+                </div>
+            </div>
+                        }
+            </div>
+        </div>
+
+        <!-- 🔹 Assigned Date -->
+        <div class="row mb-4">
+            <div class="col-md-6 position-relative">
+                <RadzenLabel Text="Assigned Date" class="form-label fw-bold mb-1" />
+                <input type="text"
+                       class="form-control text-black bg-white"
+                       readonly
+                       placeholder="Select assigned date range"
+                       value="@AssignedDateDisplay"
+                       @onclick="() => showAssignedDatePicker = !showAssignedDatePicker" />
+
+                @if (showAssignedDatePicker)
+                {
+                    <div class="border rounded p-3 bg-white shadow position-absolute"
+                         style="z-index:100; width:100%; top:110%; left:0;">
+                        <div class="row g-2">
+                            <div class="col">
+                                <label class="form-label mb-1">From</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.AssignedDateFrom"
+                                                  Name="AssignedDateFrom"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Max="@vm.taskSearchModel.AssignedDateTo"
+                                                  Style="width:100%;" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1">To</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.AssignedDateTo"
+                                                  Name="AssignedDateTo"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Min="@vm.taskSearchModel.AssignedDateFrom"
+                                                  Style="width:100%;" />
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-2">
+                            <button class="btn btn-sm btn-secondary" @onclick="ClearAssignedDate">Clear</button>
+                            <button class="btn btn-sm btn-primary" @onclick="ApplyAssignedDate"
+                                    disabled="@((vm.taskSearchModel.AssignedDateTo.HasValue && !vm.taskSearchModel.AssignedDateFrom.HasValue)
+                                                                  || (!vm.taskSearchModel.AssignedDateTo.HasValue && vm.taskSearchModel.AssignedDateFrom.HasValue))">
+                        Apply
+                    </button>
+                </div>
+            </div>
+                        }
+            </div>
+
+            <div class="col-md-6 position-relative">
+                <RadzenLabel Text="Actioned Date" class="form-label fw-bold mb-1" />
+                <input type="text"
+                       class="form-control text-black bg-white"
+                       readonly
+                       placeholder="Select actioned date range"
+                       value="@ActionedDateDisplay"
+                       @onclick="() => showActionedDatePicker = !showActionedDatePicker" />
+
+                @if (showActionedDatePicker)
+                {
+                    <div class="border rounded p-3 bg-white shadow position-absolute"
+                         style="z-index:100; width:100%; top:110%; left:0;">
+                        <div class="row g-2">
+                            <div class="col">
+                                <label class="form-label mb-1">From</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.ActionedDateFrom"
+                                                  Name="ActionedDateFrom"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Max="@vm.taskSearchModel.ActionedDateTo"
+                                                  Style="width:100%;" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1">To</label>
+                                <RadzenDatePicker @bind-Value="vm.taskSearchModel.ActionedDateTo"
+                                                  Name="ActionedDateTo"
+                                                  ShowTime="false"
+                                                  DateFormat="@appSettings.Value.DefaultDateFormat"
+                                                  Min="@vm.taskSearchModel.ActionedDateFrom"
+                                                  Style="width:100%;" />
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-2">
+                            <button class="btn btn-sm btn-secondary" @onclick="ClearActionedDate">Clear</button>
+                            <button class="btn btn-sm btn-primary" @onclick="ApplyActionedDate"
+                                    disabled="@((vm.taskSearchModel.ActionedDateTo.HasValue && !vm.taskSearchModel.ActionedDateFrom.HasValue)
+                                                                  || (!vm.taskSearchModel.ActionedDateTo.HasValue && vm.taskSearchModel.ActionedDateFrom.HasValue))">
+                        Apply
+                    </button>
+                </div>
+            </div>
+                        }
+            </div>
+        </div>
+
+        <!-- 🔹 Validation -->
+        <div class="row">
+            <div class="col-12">
+                <RadzenCustomValidator Component="WorkflowStartedTo"
+                                       Validator="@(() => ValidateDates(vm.taskSearchModel.WorkflowStartedFrom, vm.taskSearchModel.WorkflowStartedTo))"
+                                       Text="Workflow Start To must be after Start From!" />
+                <RadzenCustomValidator Component="WorkflowCompletedTo"
+                                       Validator="@(() => ValidateDates(vm.taskSearchModel.WorkflowCompletedFrom, vm.taskSearchModel.WorkflowCompletedTo))"
+                                       Text="Workflow Completed To must be after Completed From!" />
+                <RadzenCustomValidator Component="AssignedDateTo"
+                                       Validator="@(() => ValidateDates(vm.taskSearchModel.AssignedDateFrom, vm.taskSearchModel.AssignedDateTo))"
+                                       Text="Assigned Date To must be after Assigned Date From!" />
+                <RadzenCustomValidator Component="ActionedDateTo"
+                                       Validator="@(() => ValidateDates(vm.taskSearchModel.ActionedDateFrom, vm.taskSearchModel.ActionedDateTo))"
+                                       Text="Actioned Date To must be after Actioned Date From!" />
+            </div>
+        </div>
+
+        <!-- 🔹 Workflow & Task Status -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <RadzenLabel Text="Workflow Stage" Component="WorkflowStatus" class="form-label fw-bold mb-1" />
+                <RadzenDropDown @bind-Value="vm.taskSearchModel.WorkflowStatus"
+                                Name="WorkflowStatus"
+                                Placeholder="--Select workflow status--"
+                                Data="@workflowStatuses"
+                                Multiple="true"
+                                class="w-100" />
+            </div>
+            <div class="col-md-6">
+                <RadzenLabel Text="Task Status" Component="TaskStatus" class="form-label fw-bold mb-1" />
+                <RadzenDropDown @bind-Value="vm.taskSearchModel.TaskStatus"
+                                Name="TaskStatus"
+                                Placeholder="--Select task status--"
+                                Data="@taskStatus"
+                                Multiple="true"
+                                class="w-100" />
+            </div>
+        </div>
+
+        <!-- 🔹 Task Stage & Task Actioner -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <RadzenLabel Text="Reference No" Component="ReferenceNo" class="form-label fw-bold mb-1" />
+                <RadzenTextBox @bind-Value="vm.taskSearchModel.ReferenceNo"
+                               Name="ReferenceNo"
+                               Placeholder="Enter Reference No"
+                               Style="width:100%;" />
+            </div>
+
+            <div class="col-md-6">
+                <RadzenLabel Text="Task Actioner" Component="TaskActioner" class="form-label fw-bold mb-1" />
+                <PeoplePickerComponent SpHostUrl="@spHostUrl"
+                                       AccessToken="@accessToken"
+                                       @bind-SelectedUser="TempToTextActioner"
+                                       OnUserSelected="TaskActionerAsignee" />
+            </div>
+        </div>
+
+        <!-- 🔹 Buttons -->
+        <div class="d-flex justify-content-end mb-4">
+            <RadzenButton Text="Generate" Style="margin-right:10px;" Click="@GenerateReport" />
+            <RadzenButton Text="Export to Excel"
+                          Click="@ExportToExcel"
+                          Disabled="!isSearchTriggered"
+                          ButtonStyle="@(isSearchTriggered ? ButtonStyle.Primary : ButtonStyle.Secondary)"
+                          Style="margin-right:10px;" />
+
+            <RadzenButton Text="Reset" ButtonStyle="ButtonStyle.Light" Style="margin-right:10px;" Click="@ResetFilters" />
+
+        </div>
+
+    </div>
+    <div style="width:100%; overflow-x:auto;">
+    <RadzenDataGrid @ref="grid"
+                    TItem="WorkflowTaskReportData"
+                    Count="@vm.Count"
+                    LoadData="@LoadWorkflowTasks"
+                    AllowPaging="true"
+                    AllowSorting="false"
+                    AllowFiltering="false"
+                    PageSize="10"
+                    ColumnWidth="150px">
+
+        <EmptyTemplate>
+            <div class="text-center text-muted py-4">
+                No data available
+            </div>
+        </EmptyTemplate>
+
+        <Columns>
+            <!-- No. -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Title="No." Width="30px" Sortable="false" Frozen="true">
+                <Template Context="data">
+                    @(vm.Skip + vm.WorkflowReport.IndexOf(data) + 1)
+                </Template>
+            </RadzenDataGridColumn>
+
+            <!-- Reference No -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="ReferenceNo" Title="Reference No" Frozen="true" Width="150px">
+                <Template Context="data">
+                    @(!string.IsNullOrWhiteSpace(data.ReferenceNo) ? data.ReferenceNo : "-")
+                </Template>
+            </RadzenDataGridColumn>
+
+            <!-- Process Name -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="CompanyName" Title="Company Name" />
+
+            <!-- Workflow Stage -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="WorkflowStage" Title="Workflow Stage" Width="180px" />
+
+            <!-- Assignee -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="AssigneeName" Title="Task Actioner" />
+
+            <!-- Status -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="Status" Title="Task Status" Width="110px" />
+
+            <!-- Dates -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="StartDate" Title="Workflow Start">
+                <Template Context="data">@FormatDate(data.StartDate)</Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="CompletionDate" Title="Workflow Completed">
+                <Template Context="data">@FormatDate(data.CompletionDate)</Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="AssignedDate" Title="Assigned Date">
+                <Template Context="data">@FormatDate(data.AssignedDate)</Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Property="ActionedDate" Title="Actioned Date">
+                <Template Context="data">@FormatDate(data.ActionedDate)</Template>
+            </RadzenDataGridColumn>
+
+
+
+            <!-- Days Taken / Overdue -->
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Title="Days Taken">
+                <Template Context="data">@data.DaysTaken</Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="WorkflowTaskReportData" Title="Task Overdue Days">
+                <Template Context="data">@data.TaskOverdueDays</Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+    </div>
+}
+else
+{
+    <AccessDenied />
+} 
+
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+    public PeoplePickerUser TempToTextActioner { get; set; }
+    public ViewModelWorkflowReport vm = new();
+    private int pageSelectionLimit = 10; //default 10
+    private RadzenDataGrid<WorkflowTaskReportData> grid;
+    private bool isSearchTriggered = false;
+
+    List<string> taskStatus = new();
+    List<string> workflowStatuses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+        vm = await workflowProcess.InitAuthWorkflowReportCheck(vm, spHostUrl, accessToken);
+       
+        await LoadDropdowns();
+    }
+
+    private async Task LoadDropdowns()
+    {
+        TokenHelper.CheckValidAccessToken(accessToken, spHostUrl);
+        using (var ctx = TokenHelper.GetClientContextWithAccessToken(spHostUrl, accessToken))
+        {
+            workflowStatuses = ProjectHelper.GetClaimStatuses();
+            taskStatus = ProjectHelper.GetTaskStatus();
+            StateHasChanged();
+        }
+    }
+
+    private bool ValidateDates(DateTime? start, DateTime? end)
+    {
+        if (start.HasValue && end.HasValue && end < start) return false;
+        return true;
+    }
+
+    #region Buttons
+    private async Task GenerateReport()
+    {
+        isSearchTriggered = true;
+        await grid.Reload();
+    }
+
+    private async Task LoadWorkflowTasks(LoadDataArgs args)
+    {
+        // When not triggered by search, show empty grid
+        if (!isSearchTriggered)
+        {
+            grid.Data = new List<WorkflowTaskReportData>();
+            grid.Count = 0;
+            StateHasChanged();
+            return;
+        }
+
+        int pageSize = args.Top ?? pageSelectionLimit;
+        int skip = args.Skip ?? 0;
+        var currentPage = (skip / pageSize) + 1;
+
+        vm.Skip = skip;
+        vm.PageSize = pageSize;
+        vm.CurrentPage = currentPage;
+        vm.PageNumber = currentPage;
+        vm.RowsPerPage = pageSelectionLimit;
+        
+        vm = await workflowProcess.SearchWorkflowTaskReport(vm, spHostUrl, accessToken);
+        grid.Data = vm.WorkflowReport;
+        grid.Count = vm.Count;
+
+        StateHasChanged();
+    }
+
+    string FormatDate(DateTime? date)
+    {
+        if (date == null || date == DateTime.MinValue)
+            return "-";
+
+        var localDate = DateTimeHelper.ConvertToLocalDateTime(date);
+        return localDate.ToString(appSettings.Value.DefaultDateTimeWithSecondFormat);
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalLoading", "Exporting to Excel", "Please wait while we are exporting to Excel...");
+
+            // Fetch all data without pagination for export
+            vm.PageNumber = 1;
+            vm.RowsPerPage = int.MaxValue;
+            vm.IsExportToExcel = true;
+
+            // Get all records
+            vm = await workflowProcess.ExportToExcelWorkflowTaskReport(vm, spHostUrl, accessToken);
+
+            if (vm.ExcelFileBytes == null || !vm.ExcelFileBytes.Any())
+            {
+                await JS.InvokeVoidAsync("showSwalError", "No data available to export.");
+                await JS.InvokeVoidAsync("Swal.close");
+                return;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("downloadFile", "EClaims_WorkflowTaskReport.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Convert.ToBase64String(vm.ExcelFileBytes));
+                await JS.InvokeVoidAsync("Swal.close");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+        
+            LogHelper.LogMessage("ExportToExcel Error: " + ex.ToString());
+        }
+    }
+
+    private async Task ResetFilters()
+    {
+        vm.taskSearchModel = new WorkflowTaskSearchModel();
+        TempToTextActioner = null;
+        isSearchTriggered = false;
+        vm.WorkflowReport = new List<WorkflowTaskReportData>();
+
+        grid.Data = new List<WorkflowTaskReportData>();
+        vm.Count = 0;
+        await InvokeAsync(StateHasChanged);
+    }
+    #endregion
+
+    #region Peoplepicker Stuff
+    private async Task TaskActionerAsignee(PeoplePickerUser user)
+    {
+        TempToTextActioner = user;
+        vm.taskSearchModel.TaskActioner = TempToTextActioner?.Email ?? "";
+    }
+    #endregion
+
+    #region Date Stuff POP-UP
+    private bool showWorkflowStartPicker = false;
+    private bool showWorkflowCompletedPicker = false;
+    private bool showAssignedDatePicker = false;
+    private bool showActionedDatePicker = false;
+
+    private string WorkflowStartDisplay => GetDateRangeDisplay(vm.taskSearchModel.WorkflowStartedFrom, vm.taskSearchModel.WorkflowStartedTo);
+    private string WorkflowCompletedDisplay => GetDateRangeDisplay(vm.taskSearchModel.WorkflowCompletedFrom, vm.taskSearchModel.WorkflowCompletedTo);
+    private string AssignedDateDisplay => GetDateRangeDisplay(vm.taskSearchModel.AssignedDateFrom, vm.taskSearchModel.AssignedDateTo);
+    private string ActionedDateDisplay => GetDateRangeDisplay(vm.taskSearchModel.ActionedDateFrom, vm.taskSearchModel.ActionedDateTo);
+
+    private string GetDateRangeDisplay(DateTime? from, DateTime? to)
+    {
+        var fromStr = from?.ToString(appSettings.Value.DefaultDateFormat) ?? "";
+        var toStr = to?.ToString(appSettings.Value.DefaultDateFormat) ?? "";
+        if (!string.IsNullOrEmpty(fromStr) && !string.IsNullOrEmpty(toStr)) return $"{fromStr} - {toStr}";
+        return fromStr + toStr;
+    }
+
+    private void ApplyWorkflowStart() => showWorkflowStartPicker = false;
+    private void ClearWorkflowStart()
+    {
+        vm.taskSearchModel.WorkflowStartedFrom = null;
+        vm.taskSearchModel.WorkflowStartedTo = null;
+        showWorkflowStartPicker = false;
+    }
+
+    private void ApplyWorkflowCompleted() => showWorkflowCompletedPicker = false;
+    private void ClearWorkflowCompleted()
+    {
+        vm.taskSearchModel.WorkflowCompletedFrom = null;
+        vm.taskSearchModel.WorkflowCompletedTo = null;
+        showWorkflowCompletedPicker = false;
+    }
+
+    private void ApplyAssignedDate() => showAssignedDatePicker = false;
+    private void ClearAssignedDate()
+    {
+        vm.taskSearchModel.AssignedDateFrom = null;
+        vm.taskSearchModel.AssignedDateTo = null;
+        showAssignedDatePicker = false;
+    }
+
+    private void ApplyActionedDate() => showActionedDatePicker = false;
+    private void ClearActionedDate()
+    {
+        vm.taskSearchModel.ActionedDateFrom = null;
+        vm.taskSearchModel.ActionedDateTo = null;
+        showActionedDatePicker = false;
+    }
+    #endregion
+}

@@ -1,0 +1,42 @@
+﻿@inject NavigationHelper NavigationHelper
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler')?.click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@NavigationHelper.BuildUrl("/Home")" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill ms-3" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@NavigationHelper.BuildUrl("/CreateRequestForm")">
+                <span class="bi bi-plus-square-fill ms-3" aria-hidden="true"></span> New Request
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@NavigationHelper.BuildUrl("/Search")">
+                <span class="bi bi-search ms-3" aria-hidden="true"></span> Search Requests
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@NavigationHelper.BuildUrl("/Delegation")">
+                <span class="bi bi-person-check ms-3" aria-hidden="true"></span> Delegation
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@NavigationHelper.BuildUrl("/Reports")">
+                <span class="bi bi-bar-chart-line ms-3" aria-hidden="true"></span> Reports
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="@NavigationHelper.BuildUrl("/Administration")">
+                <span class="bi bi-globe ms-3" aria-hidden="true"></span> Administration
+            </NavLink>
+        </div>
+    </nav>
+</div>
+

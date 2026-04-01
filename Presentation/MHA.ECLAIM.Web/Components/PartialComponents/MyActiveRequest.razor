@@ -1,0 +1,91 @@
+﻿@page "/myactiverequest"
+@inject TokenHelper TokenHelper
+@inject IHomeProcess home
+@inject LogHelper LogHelper
+@inject NavigationHelper NavigationHelper
+@inject IOptions<JSONAppSettings> appSettings
+
+<div class="pending-task-section">
+    <h3 class="pending-task-title px-4">My Active Requests</h3>
+    <div class="pending-task-underline"></div>
+
+    <div class="flex-grow-1 px-4 p-3 overflow-auto">
+
+        <RadzenDataGrid @ref="grid"
+                        TItem="MainClaimHeader"
+                        LoadData="@LoadRequest"
+                        AllowPaging="true"
+                        PageSize="pageSelectionLimit"
+                        AllowSorting="false"
+                        AllowAlternatingRows="false"
+                        AllowFiltering="false"
+                        PagerHorizontalAlign="HorizontalAlign.Left"
+                        ShowPagingSummary="true" class="radzen-datagrid"
+                        GridLines="DataGridGridLines.Horizontal"
+                        EmptyText="No data available"
+                        ColumnWidth="@ConstantHelper.TableColumnWidth.General">
+            <Columns>
+                <RadzenDataGridColumn TItem="MainClaimHeader" Property="ReferenceNo" Title="Request Reference No" Frozen="true" WhiteSpace="WhiteSpace.Wrap">
+                    <Template Context="data">
+                        @if (!string.IsNullOrWhiteSpace(data.ReferenceNo))
+                        {
+                            <a href="@NavigationHelper.BuildUrl($"/ViewRequestForm", (ConstantHelper.ParameterQuery.RequestId, data.ID.ToString()))">@data.ReferenceNo</a>
+                        }
+                        else
+                        {
+                            <a href="@NavigationHelper.BuildUrl($"/ViewRequestForm", (ConstantHelper.ParameterQuery.RequestId, data.ID.ToString()))">-</a>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="MainClaimHeader" Property="RequesterEmployeeID" Title="Requester Employee ID" WhiteSpace="WhiteSpace.Wrap" />
+                <RadzenDataGridColumn TItem="MainClaimHeader" Property="RequesterName" Title="Requester Name" WhiteSpace="WhiteSpace.Wrap" />
+                <RadzenDataGridColumn TItem="MainClaimHeader" Property="ClaimCategory" Title="Claim Category" WhiteSpace="WhiteSpace.Wrap" />
+                <RadzenDataGridColumn TItem="MainClaimHeader" Property="ClaimStatus" Title="Claim Status" WhiteSpace="WhiteSpace.Wrap" />
+
+                <RadzenDataGridColumn TItem="MainClaimHeader" Property="Submitted" Title="Submission Date" WhiteSpace="WhiteSpace.Wrap">
+                    <Template Context="data">
+                        @if (data.SubmittedDate.HasValue)
+                        {
+                            @data.SubmittedDate.Value.ToString(appSettings.Value.DefaultDateFormat)
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+
+    private RadzenDataGrid<MainClaimHeader> grid;
+    ViewModelMyActiveRequest vm = new();
+    private int pageSelectionLimit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+        pageSelectionLimit = int.Parse(JSONAppSettings.HomePagingShowLimit);
+    }
+
+    public async Task LoadRequest(LoadDataArgs args)
+    {
+        try
+        {
+            vm.Skip = args.Skip ?? 0;
+            vm.Take = args.Top ?? 10;
+
+            vm = await home.GetMyActiveRequest(vm, spHostUrl, accessToken);
+            grid.Data = vm.Request.Items;
+            grid.Count = vm.Request.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("HomeBL - GetMyActiveRequest Error:" + ex.ToString());
+        }
+    }
+}

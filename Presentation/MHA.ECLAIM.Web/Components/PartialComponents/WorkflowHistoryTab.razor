@@ -1,0 +1,130 @@
+﻿<div class="workflow-history-section">
+    <!-- Table View (Desktop) -->
+    <div class="table-view">
+        <table class="table table-bordered table-hover">
+            <thead class="table-light text-center">
+                <tr>
+                    <th style="white-space: nowrap">Workflow Stage</th>
+                    <th style="white-space: nowrap">Assignee Name</th>
+                    <th style="white-space: nowrap">Assigned Date</th>
+                    <th style="white-space: nowrap">Due date</th>
+                    <th style="white-space: nowrap">Status</th>
+                    <th style="white-space: nowrap">Actioned Date</th>
+                    <th style="white-space: nowrap">Comments</th>
+                    <th style="white-space: nowrap">Actioned By</th>
+                    <th style="white-space: nowrap">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (WorkflowHistoyModel.WorkflowHistoryList.Count == 0)
+                {
+                    <tr>
+                        <td colspan="9" class="text-muted text-center">No workflow History.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in WorkflowHistoyModel.WorkflowHistoryList)
+                    {
+                        <tr class="align-middle">
+                            <td>@item.StepName</td>
+                            <td>@item.AssigneeName</td>
+                            <td>@item.AssignedDate</td>
+                            <td>@item.DueDate</td>
+                            <td>
+                                @{
+                                    var cssClass = item.Status switch
+                                    {
+                                        ConstantHelper.TaskStatus.Completed => "complete-color",
+                                        ConstantHelper.TaskStatus.IN_Progress => "in-progress-color",
+                                        ConstantHelper.TaskStatus.Reassigned => "reassigned-color",
+                                        ConstantHelper.TaskStatus.Removed => "removed-color",
+                                        _ => "default-color"
+                                    };
+                                }
+                                <span class="@cssClass">@item.Status</span>
+                            </td>
+                            <td>@item.ActionedDate</td>
+                            <td>@item.Comments</td>
+                            <td>@item.ActionedByName</td>
+                            <td>@item.Action</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Card View (Mobile) -->
+    <div class="card-view">
+        @if (WorkflowHistoyModel.WorkflowHistoryList?.Count > 0)
+        {
+            @foreach (var item in WorkflowHistoyModel.WorkflowHistoryList)
+            {
+                <div class="col">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label">Workflow Stage</label>
+                                    <div>@item.StepName</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Assignee Name</label>
+                                    <div>@item.AssigneeName</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Assigned Date</label>
+                                    <div>@item.AssignedDate</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Due Date</label>
+                                    <div>@item.DueDate</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Status</label>
+                                    @{
+                                        var cssClass = item.Status switch
+                                        {
+                                            ConstantHelper.TaskStatus.Completed => "complete-color",
+                                            ConstantHelper.TaskStatus.IN_Progress => "in-progress-color",
+                                            ConstantHelper.TaskStatus.Reassigned => "reassigned-color",
+                                            ConstantHelper.TaskStatus.Removed => "removed-color",
+                                            _ => "default-color"
+                                        };
+                                    }
+                                    <div><span class="@cssClass">@item.Status</span></div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Actioned Date</label>
+                                    <div>@item.ActionedDate</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Comments</label>
+                                    <div>@item.Comments</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Actioned By</label>
+                                    <div>@item.ActionedByName</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Action</label>
+                                    <div>@item.Action</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center text-muted p-3">No workflow history.</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PartialModelWorkflowHistory WorkflowHistoyModel { get; set; }
+}

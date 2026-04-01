@@ -1,0 +1,129 @@
+﻿@page "/ApprovalForm"
+
+<PageHeader Title="@PageTitle"
+            ReferenceNo="@model.MainClaimHeaderVM.ReferenceNo"
+            FormType="@ConstantHelper.PageHeaderFormType.ApprovalForm" />
+
+<div class="d-flex">
+    <div class="flex-fill py-4 px-5">
+        <!-- Requester Information Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header card-section-bg">
+                Requestor Information
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-2 d-flex align-items-center">
+                        <label class="form-label">Company Code</label>
+                    </div>
+                    <div class="col-md-4">
+                        <InputText class="form-control" @bind-Value="model.MainClaimHeaderVM.RequesterCompanyCode" readonly />
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-center">
+                        <label class="form-label">Department</label>
+                    </div>
+                    <div class="col-md-4">
+                        <InputText class="form-control" @bind-Value="model.MainClaimHeaderVM.RequesterDepartment" readonly />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-2 d-flex align-items-center">
+                        <label class="form-label">Employee ID</label>
+                    </div>
+                    <div class="col-md-4">
+                        <InputText class="form-control" @bind-Value="model.MainClaimHeaderVM.RequesterEmployeeID" readonly />
+                    </div>
+                    <div class="col-md-2 d-flex align-items-center">
+                        <label class="form-label">Date of Request </label>
+                    </div>
+                    <div class="col-md-4">
+                        <InputText class="form-control" @bind-Value="DateOfRequest" readonly />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-2 d-flex align-items-center">
+                        <label class="form-label">Employee Name</label>
+                    </div>
+                    <div class="col-md-4">
+                        <InputText class="form-control" @bind-Value="model.MainClaimHeaderVM.RequesterName" readonly />
+                    </div>
+                    <div class="col-md-2 d-flex align-items-center">
+                        <label class="form-label">Cost Center</label>
+                    </div>
+                    <div class="col-md-4">
+                        <InputText class="form-control" @bind-Value="model.MainClaimHeaderVM.RequesterCostCenter" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Claim Information Section -->
+        @if(model.CurrentStage == ConstantHelper.WorkflowStatus.PendingOriginatorResubmission)
+        {
+            <PartialClaimInformationResubmissionView model="@model" spHostUrl="@spHostUrl" accessToken="@accessToken" OnClaimChanged="OnClaimChanged" />
+        }
+        else
+        {
+            <PartialClaimInformationView model="@model" spHostUrl="@spHostUrl" accessToken="@accessToken" />
+        }
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header card-section-bg">
+                Workflow
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <WorkflowHistoryTab WorkflowHistoyModel="model.WFHistory" />
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Remarks Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header card-section-bg card-section-bg">
+                Remarks
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div>
+                        <InputTextArea class="form-control"
+                                       @bind-Value="model.MainClaimHeaderVM.GeneralRemarks"
+                                       rows="4" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br />
+        <div class="d-flex justify-content-end gap-2 mb-3">
+            @if (visibilitySettings.ShowRequireAmendment)
+            {
+                <button type="button" class="btn btn-primary" @onclick="HandleRequireAmendment">Require Amendment</button>
+            }
+            @if (visibilitySettings.ShowApprove)
+            {
+                <button type="button" class="btn btn-success" @onclick="HandleApprove">Approve</button>
+            }
+            @if (visibilitySettings.ShowReject)
+            {
+                <button type="button" class="btn btn-danger" @onclick="HandleReject">Reject</button>
+            }
+            @if (visibilitySettings.ShowSave)
+            {
+                <button type="button" class="btn btn-primary" @onclick="HandleSave">Save as Draft</button>
+            }
+            @if (visibilitySettings.ShowSubmit)
+            {
+                <button type="button" class="btn btn-success" @onclick="HandleResubmit">Resubmit</button>
+            }
+            @if (visibilitySettings.ShowClose)
+            {
+                <button type="button" class="btn btn-outline-dark" @onclick="Close">Close</button>
+            }
+        </div>
+    </div>
+</div>

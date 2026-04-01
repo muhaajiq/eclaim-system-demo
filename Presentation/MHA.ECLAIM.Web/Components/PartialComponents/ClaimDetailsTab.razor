@@ -1,0 +1,465 @@
+﻿<div class="claimdetails-section">
+    <!-- Table view -->
+    <div class="table-view">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0">Claim Details</h4>
+            <div class="d-flex">
+                <button type="button" class="btn me-2" style=" background-color: #04939b; color: white; border-color: #04939b;" @onclick="openAddClaimDetailsModal">
+                    <i class="bi bi-plus-circle me-2"></i>Add New
+                </button>
+                <button type="button" class="btn btn-danger" @onclick="openDeleteSelectedModal">
+                    <i class="bi bi-trash3 me-2"></i>Delete
+                </button>
+            </div>
+        </div>
+        
+        <table class="table table-bordered table-hover">
+            <thead class="table-secondary text-center">
+                <tr>
+                    <th style="white-space: nowrap"></th>
+                    <th style="white-space: nowrap">Date</th>
+                    <th style="white-space: nowrap">Expenses</th>
+                    <th style="white-space: nowrap">Expenses Subtype</th>
+                    <th style="white-space: nowrap">Quantity</th>
+                    <th style="white-space: nowrap">Unit Price</th>
+                    <th style="white-space: nowrap">Currency</th>
+                    <th style="white-space: nowrap">Transaction Amount</th>
+                    <th style="white-space: nowrap">Exchange Rate</th>
+                    <th style="white-space: nowrap">
+                        Sub Total
+                        @if (!string.IsNullOrWhiteSpace(MainClaimHeaderVM?.ClaimCurrency))
+                        {
+                            @($"({MainClaimHeaderVM.ClaimCurrency})")
+                        }
+                    </th>
+                    <th style="white-space: nowrap">Attachment</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!MainClaimHeaderVM.SubClaimDetails.Any())
+                {
+                    <tr>
+                        <td colspan="10" class="text-center text-muted">No claim details available.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in MainClaimHeaderVM.SubClaimDetails)
+                    {
+                        <tr class="text-center">
+                            <td>
+                                <input type="checkbox" @bind="item.IsSelected" />
+                            </td>
+                            <td style="white-space: nowrap">@item.TransactionDate.Value.ToString(ConstantHelper.DateFormat.DefaultDateFormat)</td>
+                            <td>
+                                <a href="javascript:void(0);" @onclick="() => openEditClaimModal(item)">
+                                    @item.Expenses
+                                </a>
+                            </td>
+                            <td>@item.ExpensesSubtype</td>
+                            <td>@item.Quantity</td>
+                            <td>
+                                @if (string.Equals(item.TransactionCurrency, item.ClaimCurrency, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    @item.UnitPrice.Value.ToString("F2")
+                                }
+                                else
+                                {
+                                    @item.UnitPriceConverted?.ToString("F2")
+                                }
+                            </td>
+                            <td>@item.TransactionCurrency</td>
+                            <td class="text-end">
+                                @if (string.Equals(item.TransactionCurrency, item.ClaimCurrency, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    @item.TransactionAmountConverted?.ToString("F2")
+                                }
+                                else
+                                {
+                                    @item.TransactionAmount?.ToString("F2")
+                                }
+                                @*                             <div class="small-muted mt-1">
+                                <span class="currency-badge">@($"{item.TransactionCurrency} → {item.ClaimCurrency} Rate: {item.ExchangeRate:N4}")</span>
+                            </div> *@
+                            </td>
+                            <td>@item.ExchangeRate?.ToString("N6")</td>
+                            <td class="text-end">@item.SubtotalClaimAmount?.ToString("F2")</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.AttachmentPathUrl))
+                                {
+                                    <a href="@item.AttachmentPathUrl" target="_blank">@item.AttachmentFileName</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    <tr class="table-light fw-bold">
+                        <td colspan="9" class="text-end">
+                            Total Claims Amount
+                            @if (!string.IsNullOrWhiteSpace(MainClaimHeaderVM?.ClaimCurrency))
+                            {
+                                @($" ({MainClaimHeaderVM.ClaimCurrency}):")
+                            }
+                        </td>
+                        <td colspan="1" class="text-end">
+                            @TotalClaimAmount.ToString("N2")
+                        </td>
+                        <td></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Card view (for mobile) -->
+    <div class="card-view">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0">Claim Details</h4>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm d-flex align-items-center" style="background-color: #04939b; color: white; border-color: #04939b;"
+                        @onclick="openAddClaimDetailsModal">
+                    <i class="bi bi-plus-circle me-2"></i> Add New
+                </button>
+
+                <button type="button" class="btn btn-danger btn-sm d-flex align-items-center"
+                        @onclick="openDeleteSelectedModal">
+                    <i class="bi bi-trash3 me-2"></i> Delete
+                </button>
+            </div>
+        </div>
+
+        @if (!MainClaimHeaderVM.SubClaimDetails.Any())
+        {
+            <div class="card mb-2 text-center text-muted">
+                <div class="card-body">
+                    No claim details available.
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var item in MainClaimHeaderVM.SubClaimDetails)
+            {
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <input type="checkbox" class="me-2" @bind="item.IsSelected" />
+                            <strong>@item.Expenses</strong>
+                        </div>
+                        <a href="javascript:void(0);" @onclick="() => openEditClaimModal(item)" title="Edit">
+                            <i class="bi bi-pencil-square text-primary"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Date:</strong> @item.TransactionDate?.ToString(ConstantHelper.DateFormat.DefaultDateFormat)</p>
+                        <p><strong>Subtype:</strong> @item.ExpensesSubtype</p>
+                        <p><strong>Quantity:</strong> @item.Quantity</p>
+                        <p>
+                            <strong>Unit Price:</strong>
+                            @(string.Equals(item.TransactionCurrency, item.ClaimCurrency, StringComparison.OrdinalIgnoreCase)
+                                                ? item.UnitPrice?.ToString("F2")
+                                                : item.UnitPriceConverted?.ToString("F2"))
+                                                                                      </p>
+                                                                                      <p><strong>Currency:</strong> @item.TransactionCurrency</p>
+                                                                                      <p>
+                                                                                          <strong>Transaction Amount:</strong>
+                            @(string.Equals(item.TransactionCurrency, item.ClaimCurrency, StringComparison.OrdinalIgnoreCase)
+                                                ? item.TransactionAmountConverted?.ToString("F2")
+                                                : item.TransactionAmount?.ToString("F2"))
+                </p>
+                <p><strong>Exchange Rate:</strong> @item.ExchangeRate?.ToString("N6")</p>
+                <p><strong>Subtotal:</strong> @item.SubtotalClaimAmount?.ToString("F2")</p>
+
+                @if (!string.IsNullOrWhiteSpace(item.AttachmentPathUrl))
+                        {
+                            <p><a href="@item.AttachmentPathUrl" target="_blank">@item.AttachmentFileName</a></p>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="card border-info mt-3">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-2 fw-bold">
+                        Total Claims Amount
+                        @if (!string.IsNullOrWhiteSpace(MainClaimHeaderVM?.ClaimCurrency))
+                        {
+                            @($" ({MainClaimHeaderVM.ClaimCurrency})")
+                        }
+                    </h5>
+                    <h3 class="fw-bold text-primary mb-0">
+                        @TotalClaimAmount.ToString("N2")
+                    </h3>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="claimDetailsModal" tabindex="-1" role="dialog" aria-labelledby="ClaimDetails" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+
+            <!-- Header -->
+            <div class="modal-header bg-light border-bottom">
+                <h4 class="modal-title fw-bold text-primary">
+                    <i class="bi bi-receipt me-2"></i> @(IsEdit ? "Edit Claim Details" : "Add Claim Details")
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body px-4">
+                <h3 class="text-center fw-bold text-decoration-underline mb-4">Claim Details</h3>
+
+                <RadzenTemplateForm Data="@MainClaimHeaderVM.CurrentClaimDetails" Submit="@((SubClaimDetailsVM args) => saveClaimDetails())">
+
+                    <div class="claim-info-card">
+                        <!-- Expenses + Subtype -->
+                        <RadzenRow>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Expenses</label>
+                                    <RadzenDropDown @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.Expenses"
+                                                    Data="@FilteredExpenses"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Value"
+                                                    Change="OnExpenseChanged"
+                                                    Placeholder="-- Select Expenses --"
+                                                    Style="width:100%;" Disabled="@IsReadonly" />
+                                </div>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Expenses Subtype</label>
+                                    <RadzenDropDown @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype"
+                                                    Data="@FilteredSubtypes"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Value"
+                                                    Change="OnSubtypeChanged"
+                                                    Placeholder="-- Select Expenses Subtype --"
+                                                    Style="width:100%;" Disabled="@IsReadonly">
+                                    </RadzenDropDown>
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+
+                        <!-- Transaction Date + Transaction Currency -->
+                        <RadzenRow class="mt-3">
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Transaction Date</label>
+                                    <RadzenDatePicker @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.TransactionDate"
+                                                      DateFormat="@ConstantHelper.DateFormat.DefaultDateFormat"
+                                                      Placeholder="-- Select Transaction Date --"
+                                                      Style="width:100%" Disabled="@IsReadonly" />
+                                </div>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Transaction Currency</label>
+                                    <RadzenDropDown @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency"
+                                                    Data="@MainClaimHeaderVM.CurrencyList"
+                                                    TextProperty="Text"
+                                                    ValueProperty="Text"
+                                                    Placeholder="-- Select Currency --"
+                                                    Change="OnTransactionCurrencyChanged"
+                                                    Style="width:100%;" Disabled="@IsReadonly" />
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+
+                        <!-- Quantity + Unit Amount + Exchange Rate + Transaction Amount -->
+                        <RadzenRow class="mt-3">
+                            @if (MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted.HasValue && MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted != 0)
+                            {
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <div class="form-inline-field">
+                                        <label class="required-asterisk">Quantity</label>
+                                        <RadzenNumeric @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.Quantity"
+                                                       Style="width:100%;" Min="0" Step="1" Format="F0"
+                                                       Placeholder="Quantity/KM/Hour"
+                                                       Disabled="@(AllowManualTransactionAmount)"
+                                                       Change="@((decimal? v) => OnQuantityChanged(v))" />
+                                    </div>
+                                </RadzenColumn>
+
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <div class="form-inline-field">
+                                        <label>
+                                            Unit Amount
+                                            @if (!string.IsNullOrWhiteSpace(MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency))
+                                            {
+                                                @($" ({MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency})")
+                                            }
+                                        </label>
+                                        <RadzenNumeric @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.UnitPriceConverted" ShowUpDown="false" class="numeric-right"
+                                                       Style="width:100%;" Format="F2" Disabled />
+                                    </div>
+                                </RadzenColumn>
+                            }
+                            else
+                            {
+                                <!-- No Unit Amount-->
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <div class="form-inline-field">
+                                        <label class="required-asterisk">Quantity</label>
+                                        <RadzenNumeric @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.Quantity"
+                                                       Style="width:100%;" Min="0" Step="1" Format="F0"
+                                                       Placeholder="Quantity/KM/Hour"
+                                                       Disabled="@(AllowManualTransactionAmount)"
+                                                       Change="@((decimal? v) => OnQuantityChanged(v))"
+                                                       ShowUpDown="@(!AllowManualTransactionAmount)" />
+                                    </div>
+                                </RadzenColumn>
+                            }
+
+                            <RadzenColumn Size="12" SizeMD="3">
+                                <div class="form-inline-field">
+                                    <label>
+                                        Exchange Rate
+                                        <span class="small-muted ms-1 fst-italic">@($"({MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency} → {MainClaimHeaderVM.ClaimCurrency})")</span>
+                                    </label>
+                                    <div>
+                                        <RadzenNumeric @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.ExchangeRate" class="numeric-right"
+                                                       Style="width:100%;" Format="F6" ShowUpDown="false"
+                                                       Disabled />
+                                    </div>
+                                </div>
+                            </RadzenColumn>
+
+                            <RadzenColumn Size="12" SizeMD="3">
+                                <div class="form-inline-field">
+                                    <label class="required-asterisk">Transaction Amount</label>
+                                    <div>
+                                        <RadzenNumeric class="numeric-right" @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.TransactionAmount"
+                                                       Style="width:100%;" Min="0" Step="0.01" Format="F2" ShowUpDown="false"
+                                                       Disabled="@(!AllowManualTransactionAmount)"
+                                                       Change="@((decimal? v) => OnTransactionAmountChanged(v))" />
+                                    </div>
+                                </div>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </div>
+
+                    <!-- Description -->
+                    <RadzenRow class="mt-4">
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <div class="form-inline-field">
+                                <label class="required-asterisk">Description</label>
+                                <RadzenTextArea @bind-Value="MainClaimHeaderVM.CurrentClaimDetails.Description"
+                                                Rows="5" Style="width:100%;" Disabled="@IsReadonly" />
+                            </div>
+                        </RadzenColumn>
+
+                        <!-- Info card -->
+                        @if (!string.IsNullOrWhiteSpace(MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype))
+                        {
+                            var maintenance = MainClaimHeaderVM.ExpensesMaintenanceList.FirstOrDefault(m => m.ExpensesSubtype == MainClaimHeaderVM.CurrentClaimDetails.ExpensesSubtype);
+                            if (maintenance != null)
+                            {
+                                var txnCurrency = MainClaimHeaderVM.CurrentClaimDetails.TransactionCurrency ?? MainClaimHeaderVM.ClaimCurrency;
+                                var claimCurrency = MainClaimHeaderVM.ClaimCurrency ?? txnCurrency;
+
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <div class="claim-info-card" style="background:#fafafa;">
+                                        <div class="claim-total-row">
+                                            <div class="claim-info-label">Subtotal Claim Amount</div>
+                                            <div class="claim-info-value claim-balance">
+                                                @($"{MainClaimHeaderVM.CurrentClaimDetails.TransactionAmountConverted:N2} {claimCurrency}")
+                                            </div>
+                                        </div>
+                                        <div class="claim-info-row">
+                                            <div class="claim-info-label"><i class="fa-solid fa-sync me-2"></i>Frequency</div>
+                                            <div class="claim-info-value fw-bold">@maintenance.Frequency</div>
+                                        </div>
+                                        <div class="claim-info-row">
+                                            <div class="claim-info-label"><i class="fa-solid fa-wallet me-2"></i>Claim Limit</div>
+                                            <div class="claim-info-value fw-bold">@($"{maintenance.ClaimLimit:N2} {claimCurrency}")</div>
+                                        </div>
+                                    </div>
+                                </RadzenColumn>
+                            }
+                        }
+                    </RadzenRow>
+
+                    <!-- Supporting Document -->
+                    <RadzenRow class="mt-3">
+                        <RadzenColumn Size="12">
+                            <div class="form-inline-field">
+                                <label class="required-asterisk">Supporting Document</label>
+                                <RadzenCard Style="padding:1rem; border:1px solid #e0e0e0; border-radius:6px; background:#fafafa;">
+                                    @if (!string.IsNullOrWhiteSpace(tempAttachmentPathUrl) && !isFileMarkedForDelete)
+                                    {
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <a href="@tempAttachmentPathUrl" target="_blank" class="text-decoration-none fw-semibold">
+                                                <i class="bi bi-paperclip me-1"></i>@tempAttachmentFileName
+                                            </a>
+                                            @if (!IsReadonly)
+                                            {
+                                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger"
+                                                              Size="ButtonSize.Small"
+                                                              Click="@(() => ClearExistingFileSelected())" />
+                                            }
+                                        </div>
+                                    }
+                                    else if (!IsReadonly)
+                                    {
+                                        <RadzenUpload @ref="uploadRef" ChooseText="Browse..."
+                                                      Accept=".pdf,.jpg,.png"
+                                                      Multiple="false" Auto="false"
+                                                      Change="@OnFileSelected"
+                                                      Style="margin-top:0.5rem; width:100%;" />
+                                    }
+                                </RadzenCard>
+                            </div>
+                        </RadzenColumn>
+                    </RadzenRow>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        @if (!IsReadonly)
+                        {
+                            <RadzenButton ButtonType="ButtonType.Submit"
+                                          Icon="save"
+                                          Text="@((IsEdit ? "Update" : "Save"))"
+                                          ButtonStyle="ButtonStyle.Success"
+                                          Disabled="@IsSaveDisabled" />
+                        }
+                        <RadzenButton Text="Close"
+                                      ButtonStyle="ButtonStyle.Secondary"
+                                      Variant="Variant.Outlined"
+                                      Click="@CloseClaimDetailsModal" />
+                    </div>
+
+                </RadzenTemplateForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Selected Modal -->
+<div class="modal fade" id="deleteClaimDetailsModal" tabindex="-1" aria-labelledby="deleteClaimDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="deleteClaimDetailsModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="fs-5 mb-3">Are you sure you want to delete the selected claim?</p>
+                <p class="text-danger fw-bold">This will permanently remove the attachments from the library.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-danger px-4" @onclick="deleteSelectedClaimDetails">
+                    <i class="bi bi-trash-fill me-1"></i> Delete
+                </button>
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

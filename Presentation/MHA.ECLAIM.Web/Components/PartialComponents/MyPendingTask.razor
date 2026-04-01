@@ -1,0 +1,124 @@
+﻿@page "/MyPendingTask"
+@inject IHomeProcess home
+@inject TokenHelper TokenHelper
+@inject LogHelper LogHelper
+@inject NavigationHelper NavigationHelper
+
+<div class="pending-task-section">
+    <h3 class="pending-task-title px-4">My Pending Tasks</h3>
+    <div class="pending-task-underline"></div>
+
+    <div class="flex-grow-1 px-4 p-3 overflow-auto">
+        <RadzenDataGrid @ref="grid"
+                        LoadData="@LoadData"
+                        TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask"
+                        AllowPaging="true"
+                        PageSize="pageSelectionLimit"
+                        AllowSorting="false"
+                        AllowAlternatingRows="false"
+                        AllowFiltering="false"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        ShowPagingSummary="true" class="radzen-datagrid"
+                        GridLines="DataGridGridLines.Horizontal"
+                        EmptyText="No data available"
+                        ColumnWidth="@ConstantHelper.TableColumnWidth.General">
+            <Columns>
+                @* Icon column — commented out
+        <RadzenDataGridColumn Title="" Width="40px">
+            <Template Context="data">
+                @if (data.IsOverDue)
+                {
+                    <RadzenIcon Icon="error" class="overdue-icon" Style="color: red;" />
+                }
+            </Template>
+        </RadzenDataGridColumn> 
+        *@
+
+                <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="RequestReferenceNo" Title="Request Reference No" Frozen="true" WhiteSpace="WhiteSpace.Wrap">
+                    <Template Context="data">
+                        @if (data.IsUpcomingTask)
+                        {
+                            <a href="@data.TaskURL" target="_parent" class="grey-color"
+                               onclick="alert('This is an upcoming task. It is not active yet.');">
+                                @data.RequestReferenceNo
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@data.TaskURL">@data.RequestReferenceNo</a>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+
+                @* <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="EmployeeId" Title="Employee ID" WhiteSpace="WhiteSpace.Wrap" /> *@
+                <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="EmployeeName" Title="Employee Name" WhiteSpace="WhiteSpace.Wrap" />
+                <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="ClaimCategory" Title="Claim Category" WhiteSpace="WhiteSpace.Wrap" />
+                <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="DueDate" Title="Task Due Date" WhiteSpace="WhiteSpace.Wrap">
+                    <Template Context="data">
+                        @if (data.IsOverDue)
+                        {
+                            <span class="red-color">@data.DueDateDisplay</span>
+                        }
+                        else if (data.IsUpcomingTask)
+                        {
+                            <span class="orange-color">Upcoming</span>
+                        }
+                        else
+                        {
+                            <span>@data.DueDateDisplay</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="StepName" Title="Status" WhiteSpace="WhiteSpace.Wrap" />
+                @* <RadzenDataGridColumn TItem="MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask" Property="WorkflowDueDate" Title="Workflow Due Date" WhiteSpace="WhiteSpace.Wrap" /> *@
+            </Columns>
+        </RadzenDataGrid>
+
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+    private RadzenDataGrid<MHA.ECLAIM.Entities.ViewModel.Shared.MyPendingTask>? grid;
+    private int pageSelectionLimit;
+
+    ViewModelMyPendingTask vm = new ViewModelMyPendingTask();
+
+    protected override async Task OnInitializedAsync()
+    {
+        accessToken = await TokenHelper.GetUserAccessToken();
+        pageSelectionLimit = int.Parse(JSONAppSettings.HomePagingShowLimit);
+    }
+
+    protected async Task LoadData(LoadDataArgs args)
+    {
+        try
+        {
+            var pageSize = args.Top ?? pageSelectionLimit;
+            var skip = args.Skip ?? 0;
+            var currentPage = (skip / pageSize) + 1;
+
+            var vmMyTask = new ViewModelMyPendingTask
+            {
+                CurrentPage = currentPage,
+                RowsPerPage = pageSelectionLimit
+            };
+
+            vm = await home.GetMyPendingTask(vmMyTask, spHostUrl, accessToken);
+
+            var filteredTasks = vm.MyTaskList
+           .Where(task => !task.IsUpcomingTask)
+           .ToList();
+
+            grid.Data = filteredTasks;
+            grid.Count = vm.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogMessage("home - GetMyPendingTask Error:" + ex.ToString());
+        }
+    }
+}

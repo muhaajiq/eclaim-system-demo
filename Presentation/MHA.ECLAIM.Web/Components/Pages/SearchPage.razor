@@ -1,0 +1,355 @@
+﻿@page "/Search"
+@attribute [Authorize]
+@inject TokenHelper TokenHelper
+@inject ProjectHelper ProjectHelper
+@inject NavigationHelper NavigationHelper
+@inject IClaimProcess ClaimProcess
+@inject IJSRuntime JS
+@inject IOptions<JSONAppSettings> appSettings
+@inject NavigationHelper NavigationHelper
+
+<h2 class="page-title">Search Requests</h2>
+<div class="page-title-underline"></div>
+
+<RadzenTemplateForm TItem="MainClaimHeaderSearchModel" Data="@vm.SearchModel" Submit="@Search">
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6 mb-2 d-flex align-items-center">
+                    <RadzenLabel Text="Reference No" Component="referemceNo" Style="width: 30%" />
+                    <RadzenTextBox @bind-Value="vm.SearchModel.ReferenceNo" Name="referemceNo" Placeholder="Reference No" Style="width:70%" />
+                </div>
+                <div class="col-md-6 mb-2 d-flex align-items-center">
+                    <RadzenLabel Text="Company Code" Component="companyCode" Style="width: 30%" />
+                    <RadzenTextBox @bind-Value="vm.SearchModel.RequesterCompanyCode" Name="companyCode" Placeholder="Company Code" Style="width:70%" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6 mb-2 d-flex align-items-center">
+                    <RadzenLabel Text="Requester Name" Component="requesterName" Style="width: 30%" />
+                    <RadzenTextBox @bind-Value="vm.SearchModel.RequesterName" Name="requesterName" Placeholder="Requester Name" Style="width:70%" />
+                </div>
+                <div class="col-md-6 mb-2 d-flex align-items-center">
+                    <RadzenLabel Text="Requester Employee ID" Component="requesterEmployeeID" Style="width: 30%" />
+                    <RadzenTextBox @bind-Value="vm.SearchModel.RequesterEmployeeID" Name="requesterEmployeeID" Placeholder="Requester Employee ID" Style="width:70%" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6 d-flex align-items-center">
+                    <RadzenLabel Text="Request Start Date" Component="requestStartDate" Style="width: 30%" />
+                    <RadzenDatePicker @bind-Value="vm.SearchModel.RequestStartDate" Name="requestStartDate" Placeholder="@appSettings.Value.DefaultDateFormat" ShowTime="false" Style="width:70%" DateFormat="@appSettings.Value.DefaultDateFormat" />
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                    <RadzenLabel Text="Request End Date" Component="requestEndDate" Style="width: 30%" />
+                    <RadzenDatePicker @bind-Value="vm.SearchModel.RequestEndDate" Name="requestEndDate" Placeholder="@appSettings.Value.DefaultDateFormat" ShowTime="false" Style="width:70%" DateFormat="@appSettings.Value.DefaultDateFormat" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12 d-flex align-items-center justify-content-end">
+                    <RadzenCustomValidator Component="requestEndDate" Validator="@(() => ValidateDates(vm.SearchModel.RequestStartDate, vm.SearchModel.RequestEndDate))" Text="Request End Date must be after request Start Date!" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6 d-flex align-items-center">
+                    <RadzenLabel Text="Requester Cost Center" Component="requesterCostCenter" Style="width: 30%" />
+                    <RadzenDropDown @bind-Value="vm.SearchModel.RequesterCostCenter" Name="costCenter" Placeholder="--Select Cost Center(s)--" Data="@costCenters" TextProperty="@nameof(DropDownListItem.Text)" ValueProperty="@nameof(DropDownListItem.Text)" Style="width:70%" Multiple="true" />
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                    <RadzenLabel Text="Department" Component="department" Style="width: 30%" />
+                    <RadzenDropDown @bind-Value="vm.SearchModel.RequesterDepartment" Name="department" Placeholder="--Select department(s)--" Data="@departments" TextProperty="@nameof(DropDownListItem.Text)" ValueProperty="@nameof(DropDownListItem.Text)" Style="width:70%" Multiple="true" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6 d-flex align-items-center">
+                    <RadzenLabel Text="Claim Status" Component="claimStatus" Style="width: 30%" />
+                    <RadzenDropDown @bind-Value="vm.SearchModel.ClaimStatus" Name="claimStatus" Placeholder="--Select Claim Status(s)--" Data="@claimStatuses" Style="width:70%" Multiple="true" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12 d-flex align-items-center justify-content-end">
+                    <RadzenLabel Text="Show Inactive List Items" Component="showInactiveItems" />
+                    <RadzenCheckBox @bind-Value="vm.ShowInactiveItems" Name="showInactiveItems" TValue="bool" Change="LoadMaintenanceListItems" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-end">
+                    <RadzenButton Text="Search" ButtonStyle="ButtonStyle.Secondary" Icon="search" Type="Submit" Style="margin-right: 10px" />
+                    <RadzenButton Text="Clear" ButtonStyle="ButtonStyle.Light" Icon="refresh" Click="@ClearFilters" />
+                </div>
+            </div>
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+<div class="row">
+    <div class="col-md-6">
+        <h3>Search Results</h3>
+        <b class="mt-2 fs-8">
+            Total Search Results: @vm.MainClaimHeaderListing.TotalCount
+        </b>
+    </div>
+
+    <div class="col-md-6 d-flex justify-content-end align-items-center">
+        @if (isSearchTriggered == false)
+        {
+            <RadzenButton Text="Export to Excel"
+                          ButtonStyle="ButtonStyle.Light"
+                          class="btn btn-outline-secondary px-4" />
+        }
+        else
+        {
+            <RadzenButton Text="Export to Excel"
+                          ButtonStyle="ButtonStyle.Primary"
+                          Click="@ExportToExcel"
+                          class="px-4" />
+        }
+    </div>
+</div>
+
+<div style="width: 100%;">
+    <RadzenDataGrid @ref="grid"
+                    TItem="MainClaimHeader"
+                    Data="@vm.MainClaimHeaderListing.Items"
+                    Count="@vm.MainClaimHeaderListing.TotalCount"
+                    LoadData="@LoadMainClaimHeaderListing"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    AllowFiltering="false"
+                    ShowPagingSummary="false"
+                    Responsive="true"
+                    PageSize="10"
+                    ColumnWidth="190px">
+        <EmptyTemplate>
+            <div class="text-center text-muted py-4">
+                No data available
+            </div>
+        </EmptyTemplate>
+        <Columns>
+            <!-- Row number column -->
+            <RadzenDataGridColumn TItem="MainClaimHeader" Title="No. " Width="29px" Sortable="false" Frozen="true" WhiteSpace="WhiteSpace.Wrap">
+                <Template Context="item">
+                    @(vm.Skip + vm.MainClaimHeaderListing.Items.IndexOf(item) + 1)
+                </Template>
+            </RadzenDataGridColumn>
+
+            @* <RadzenDataGridColumn TItem="MainClaimHeader" Property="ReferenceNo" Title="Reference No" /> *@
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="ReferenceNo" Title="Reference No" Frozen="true" WhiteSpace="WhiteSpace.Wrap">
+                <Template Context="data">
+                    @{
+                        var isDraft = !string.IsNullOrEmpty(data.ClaimStatus) && data.ClaimStatus.Equals("Draft", StringComparison.OrdinalIgnoreCase);
+                        var isOwner = data.CreatedByLogin?.Equals(vm.CurrentUserLogin, StringComparison.OrdinalIgnoreCase) == true;
+
+                        string url = isDraft && isOwner
+                        ? NavigationHelper.BuildUrl("/CreateRequestForm", (ConstantHelper.ParameterQuery.RequestId, data.ID.ToString()))
+                        : NavigationHelper.BuildUrl("/ViewRequestForm", (ConstantHelper.ParameterQuery.RequestId, data.ID.ToString()));
+                    }
+
+                    <a href="@url">@(!string.IsNullOrWhiteSpace(data.ReferenceNo) ? data.ReferenceNo : "-")</a>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="RequesterName" Title="Requester Name" />
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="RequesterEmployeeID" Title="Requester Employee ID" />
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="RequesterDepartment" Title="Requester Department" />
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="RequestDate" Title="Request Date">
+                <Template Context="data">
+                    @FormatDate(data.RequestDate)
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="ClaimStatus" Title="Claim Status" />
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="PurposeOfClaims" Title="Purpose of Claims" />
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="ClaimCurrency" Title="Claim Currency" />
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="SubmittedDate" Title="Submitted Date">
+                <Template Context="data">
+                    @FormatDate(data.SubmittedDate)
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MainClaimHeader" Property="CreatedDate" Title="Created Date">
+                <Template Context="data">
+                    @FormatDate(data.CreatedDate)
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@if(vm.MainClaimHeaderListing.TotalCount > 0)
+{
+    <p>
+        Showing @(vm.Skip + 1) to @(Math.Min(vm.Skip + vm.PageSize, vm.MainClaimHeaderListing.TotalCount)) of @vm.MainClaimHeaderListing.TotalCount entries
+    </p>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = ConstantHelper.ParameterQuery.SPHostUrl)]
+    [Parameter]
+    public string spHostUrl { get; set; }
+    public string accessToken = string.Empty;
+
+    private RadzenDataGrid<MainClaimHeader> grid = new();
+    private SearchClaimVM vm = new();
+
+    List<DropDownListItem> costCenters = new();
+    List<DropDownListItem> departments = new();
+    List<string> claimStatuses = new();
+
+    private bool isSearchTriggered = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // perform init
+        accessToken = await TokenHelper.GetUserAccessToken();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadMaintenanceListItems();
+        }
+    }
+
+    private async Task LoadMaintenanceListItems()
+    {
+        await JS.InvokeVoidAsync("showSwalGeneralLoading", "Loading List Items", "Please wait while we are loading list items...");
+
+        bool showInactive = vm.ShowInactiveItems;
+
+        //TODO: Add logic to handle exception
+        costCenters = ProjectHelper.LoadDropDownListItem(ConstantHelper.SPList.CostCenter, showInactive, spHostUrl, accessToken);
+        departments = ProjectHelper.LoadDropDownListItem(ConstantHelper.SPList.Department, showInactive, spHostUrl, accessToken);
+        claimStatuses = ProjectHelper.GetClaimStatuses();
+
+        await JS.InvokeVoidAsync("Swal.close");
+
+        StateHasChanged();
+    }
+
+    private async Task LoadMainClaimHeaderListing(LoadDataArgs args)
+    {
+        if (!isSearchTriggered)
+        {
+            grid.Data = new List<MainClaimHeader>();
+            grid.Count = 0;
+
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalGeneralLoading", "Searching claims", "Please wait while we are searching for claims...");
+
+            string sortCol = string.Empty;
+            string sortDir = "asc";
+
+            if (!string.IsNullOrEmpty(args.OrderBy))
+            {
+                // args.OrderBy is like "RequesterName asc"
+                var parts = args.OrderBy.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                sortCol = parts[0];
+                if (parts.Length > 1)
+                    sortDir = parts[1];
+            }
+
+            int pageSize = args.Top ?? 10;
+            int skip = args.Skip ?? 0;
+            int take = args.Top ?? 10;
+            var currentPage = (skip / pageSize) + 1;
+
+            var searchResult = await ClaimProcess.SearchClaims(vm.SearchModel, sortCol, sortDir, skip, take, spHostUrl, accessToken);
+
+            vm.MainClaimHeaderListing = searchResult.MainClaimHeaderListing;
+            vm.CurrentUserLogin = searchResult.CurrentUserLogin;
+            vm.Skip = skip;
+            vm.PageSize = pageSize;
+            vm.CurrentPage = currentPage;
+
+            await JS.InvokeVoidAsync("Swal.close");
+
+            if (!vm.MainClaimHeaderListing.IsSuccessful)
+            {
+                await JS.InvokeVoidAsync("Swal.close");
+
+                await JS.InvokeVoidAsync("showSwalError", "Failed to load claim listing. ");
+            }
+        }
+        catch (Exception)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+
+            await JS.InvokeVoidAsync("showSwalError", "Failed to load claim listing. ");
+
+            // LogHelper
+        }
+    }
+
+    private async Task Search(MainClaimHeaderSearchModel model)
+    {
+        isSearchTriggered = true;
+        vm.SearchModel = model;
+        await grid.Reload();
+    }
+
+    private async Task ClearFilters()
+    {
+        vm.SearchModel = new MainClaimHeaderSearchModel();
+        vm.MainClaimHeaderListing = new PagedResultDto<MainClaimHeader>();
+        grid.Data = new List<MainClaimHeader>();
+        return;
+    }
+
+    private bool ValidateDates(DateTime? start, DateTime? end)
+    {
+        if (start.HasValue && end.HasValue && end < start) return false;
+
+        return true;
+    }
+
+    string FormatDate(DateTime? date)
+    {
+        return (date == null || date == DateTime.MinValue)
+            ? "-"
+            : date.Value.ToString(appSettings.Value.DefaultDateTimeWithSecondFormat);
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("showSwalLoading", "Exporting to Excel", "Please wait while we are exporting to Excel...");
+
+            vm.SearchModel.IsExportToExcel = true;
+
+            // Get all records
+            string sortCol = string.Empty;
+            string sortDir = "asc";
+            int skip = 0;
+            int take = int.MaxValue;
+
+            SearchClaimVM newVM = await ClaimProcess.SearchClaims(vm.SearchModel, sortCol, sortDir, skip, take, spHostUrl, accessToken);
+
+            if (newVM.MainClaimHeaderListing.TotalCount == 0)
+            {
+                await JS.InvokeVoidAsync("showSwalError", "No data available to export.");
+                await JS.InvokeVoidAsync("Swal.close");
+                return;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("downloadFile", "Eclaim_SearchResults.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Convert.ToBase64String(newVM.SearchModel.ExcelFileBytes));
+                await JS.InvokeVoidAsync("Swal.close");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("Swal.close");
+            // await JS.InvokeVoidAsync("showSwalError", "Failed to export to Excel.");
+            // LogHelper.LogMessage("ExportToExcel Error: " + ex.ToString());
+        }
+    }
+
+}
+
